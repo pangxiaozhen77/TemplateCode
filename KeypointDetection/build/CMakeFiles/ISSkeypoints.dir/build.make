@@ -35,10 +35,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/yves/KeypointDetection
+CMAKE_SOURCE_DIR = /home/yves/TemplateCode/KeypointDetection/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/yves/KeypointDetection/build
+CMAKE_BINARY_DIR = /home/yves/TemplateCode/KeypointDetection/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/ISSkeypoints.dir/depend.make
@@ -50,18 +50,18 @@ include CMakeFiles/ISSkeypoints.dir/progress.make
 include CMakeFiles/ISSkeypoints.dir/flags.make
 
 CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.o: CMakeFiles/ISSkeypoints.dir/flags.make
-CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.o: ../ISSkeypoints.cpp
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/yves/KeypointDetection/build/CMakeFiles $(CMAKE_PROGRESS_1)
+CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.o: /home/yves/TemplateCode/KeypointDetection/src/ISSkeypoints.cpp
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/yves/TemplateCode/KeypointDetection/build/CMakeFiles $(CMAKE_PROGRESS_1)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.o -c /home/yves/KeypointDetection/ISSkeypoints.cpp
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.o -c /home/yves/TemplateCode/KeypointDetection/src/ISSkeypoints.cpp
 
 CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/yves/KeypointDetection/ISSkeypoints.cpp > CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.i
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/yves/TemplateCode/KeypointDetection/src/ISSkeypoints.cpp > CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.i
 
 CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/yves/KeypointDetection/ISSkeypoints.cpp -o CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.s
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/yves/TemplateCode/KeypointDetection/src/ISSkeypoints.cpp -o CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.s
 
 CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.o.requires:
 .PHONY : CMakeFiles/ISSkeypoints.dir/ISSkeypoints.cpp.o.requires
@@ -198,6 +198,6 @@ CMakeFiles/ISSkeypoints.dir/clean:
 .PHONY : CMakeFiles/ISSkeypoints.dir/clean
 
 CMakeFiles/ISSkeypoints.dir/depend:
-	cd /home/yves/KeypointDetection/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/yves/KeypointDetection /home/yves/KeypointDetection /home/yves/KeypointDetection/build /home/yves/KeypointDetection/build /home/yves/KeypointDetection/build/CMakeFiles/ISSkeypoints.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/yves/TemplateCode/KeypointDetection/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/yves/TemplateCode/KeypointDetection/src /home/yves/TemplateCode/KeypointDetection/src /home/yves/TemplateCode/KeypointDetection/build /home/yves/TemplateCode/KeypointDetection/build /home/yves/TemplateCode/KeypointDetection/build/CMakeFiles/ISSkeypoints.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/ISSkeypoints.dir/depend
 

@@ -1,0 +1,14 @@
+Open a terminal, navigate to your project root folder and configure the project:
+
+$ cd /path_to_my_project/build
+$ cmake -G "Eclipse CDT4 - Unix Makefiles" ../src
+
+Importing into Eclipse
+
+    Launch Eclipse CDT and select File > Import.
+    In the list select General > Existing Projects into Workspace and then next.
+    Browse (Select root directory) to the root folder of the project and select the build folder (in the example case, /home/dell/visualizer/build).
+    Click Finish.
+
+
+More Info: http://pointclouds.org/documentation/tutorials/using_pcl_with_eclipse.php#using-pcl-with-eclipse
