@@ -36,8 +36,9 @@ main (int argc, char** argv)
   int height = base_cloud.height;
   int width = base_cloud.width;
 
-  std::cout << "Loaded " << width * height << " data points from input file " << std::endl;
+  std::cout << "Loaded " << width * height << " data points from input file. " << std::endl;
   std::cout << "width = " << width << "    height = " << height << std::endl;
+  std::cout << "Averaging over " << nclouds << " clouds.  RGB average: " << RGBaverage << std::endl;
 
   // Averaging over ncloud clouds
   for (int k=2; k<=nclouds; ++k)
@@ -68,7 +69,7 @@ main (int argc, char** argv)
           pcl::PointXYZRGB point_base_cloud = base_cloud(i,j);
           pcl::PointXYZRGB point_new_cloud = new_cloud(i,j);
 
-          if (point_base_cloud.x != 0 || point_base_cloud.y != 0 || point_base_cloud.y != 0)
+          if (point_base_cloud.z != 0 && point_new_cloud.z != 0)
           {
             point_base_cloud.x = (point_base_cloud.x * (k-1) + point_new_cloud.x)/k;
             point_base_cloud.y = (point_base_cloud.y * (k-1) + point_new_cloud.y)/k;
@@ -77,10 +78,18 @@ main (int argc, char** argv)
             point_base_cloud.g = (point_base_cloud.g * (k-1) + point_new_cloud.g)/k;
             point_base_cloud.b = (point_base_cloud.b * (k-1) + point_new_cloud.b)/k;
 
-            base_cloud(i,j) = point_base_cloud;
+          }else if (point_new_cloud.z != 0)
+          {
+            point_base_cloud.x = point_new_cloud.x;
+            point_base_cloud.y = point_new_cloud.y;
+            point_base_cloud.z = point_new_cloud.z;
+            point_base_cloud.r = point_new_cloud.r;
+            point_base_cloud.g = point_new_cloud.g;
+            point_base_cloud.b = point_new_cloud.b;
           }
-          //std::cout << "Point (" << i << "," << j <<") :" << base_cloud(i,j) << std::endl;
+          base_cloud(i,j) = point_base_cloud;
         }
+          //std::cout << "Point (" << i << "," << j <<") :" << base_cloud(i,j) << std::endl;
       }
     }
 
@@ -121,6 +130,8 @@ main (int argc, char** argv)
   tend = time(0);
   std::cout << "It took "<< difftime(tend, tstart) <<" second(s)."<< std::endl;
 
+  // saving file
+  pcl::io::savePCDFileASCII (scene_name + "averaged.pcd", base_cloud);
 
   // Finish
     return 0;
