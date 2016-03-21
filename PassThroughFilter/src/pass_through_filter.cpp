@@ -18,9 +18,9 @@ int
    tstart = time(0);
 
   // Load input file into a PointCloud<T> with an appropriate type
-     pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGBA>);
+     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
 
-           if (pcl::io::loadPCDFile<pcl::PointXYZRGBA> (argv[1], *cloud) == -1) //* load the file
+           if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (argv[1], *cloud) == -1) //* load the file
            {
              PCL_ERROR ("Couldn't read input file \n");
              return (-1);
@@ -34,29 +34,29 @@ int
     std::cout << "PCD is loaded" << std::endl;
 
 
-  pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZRGBA>);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZRGB>);
 
 
   // Create the filtering object
-  pcl::PassThrough<pcl::PointXYZRGBA> pass;
+  pcl::PassThrough<pcl::PointXYZRGB> pass;
   pass.setInputCloud (cloud);
   pass.setFilterFieldName ("x");
-  float xmin = -0.27;
+  float xmin = -0.1;
   float xmax = 0.5;
   pass.setFilterLimits (xmin, xmax);
   //pass.setFilterLimitsNegative (true);
   pass.filter (*cloud_filtered);
   pass.setInputCloud (cloud_filtered);
   pass.setFilterFieldName ("y");
-  float ymin = -0.25;
-  float ymax = 0.25;
+  float ymin = -0.1;
+  float ymax = 0.1;
   pass.setFilterLimits (ymin, ymax);
   //pass.setFilterLimitsNegative (true);
   pass.filter (*cloud_filtered);
   pass.setInputCloud (cloud_filtered);
   pass.setFilterFieldName ("z");
-  float zmin = 0.7;
-  float zmax = 1.0;
+  float zmin = 0.4;
+  float zmax = 0.6;
   pass.setFilterLimits (zmin, zmax);
   //pass.setFilterLimitsNegative (true);
   pass.filter (*cloud_filtered);
