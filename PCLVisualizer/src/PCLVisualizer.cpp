@@ -314,6 +314,9 @@ main (int argc, char** argv)
                   << point_cloud_ptr->width * point_cloud_ptr->height
                   << " data points from input file "
                   << std::endl;
+        std::cout << "width = " << point_cloud_ptr->width
+                  << "    height = " << point_cloud_ptr->height
+                  << std::endl;
   if (pcl::io::loadPCDFile<pcl::PointXYZ> (argv[1], *basic_cloud_ptr) == -1) //* load the file
         {
           PCL_ERROR ("Couldn't read input file \n");
@@ -323,7 +326,20 @@ main (int argc, char** argv)
                   << basic_cloud_ptr->width * basic_cloud_ptr->height
                   << " data points from input file "
                   << std::endl;
+        std::cout << "width = " << basic_cloud_ptr->width
+                  << "    height = " << basic_cloud_ptr->height
+                  << std::endl;
 
+        //extract point
+
+        int column = 240;
+        int row = 180;
+        pcl::PointCloud<pcl::PointXYZRGB> cloudRGB = *point_cloud_ptr;
+        pcl::PointXYZRGB pointRGB = cloudRGB(column,row);
+        std::cout <<"Point content" << pointRGB << std::endl;
+        pcl::PointCloud<pcl::PointXYZ> cloud = *basic_cloud_ptr;
+        pcl::PointXYZ point = cloud(column,row);
+        std::cout <<"Point content" << point << std::endl;
 
 pcl::PointCloud<pcl::Normal>::Ptr cloud_normals1 (new pcl::PointCloud<pcl::Normal>);
 pcl::PointCloud<pcl::Normal>::Ptr cloud_normals2 (new pcl::PointCloud<pcl::Normal>);
