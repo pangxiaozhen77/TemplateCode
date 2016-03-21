@@ -329,6 +329,7 @@ pcl::PointCloud<pcl::Normal>::Ptr cloud_normals1 (new pcl::PointCloud<pcl::Norma
 pcl::PointCloud<pcl::Normal>::Ptr cloud_normals2 (new pcl::PointCloud<pcl::Normal>);
 if (normals || shapes || interaction_customization)
 {
+  std::cout << "\n\n Calculation surface normals, this could take some time. Please wait!\n";
   // ----------------------------------------------------------------
   // -----Calculate surface normals with a search radius of 0.05-----
   // ----------------------------------------------------------------

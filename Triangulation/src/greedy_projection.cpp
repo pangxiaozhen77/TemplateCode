@@ -85,6 +85,7 @@ main (int argc, char** argv)
   // End Timer
   tend = time(0);
   std::cout << "It took "<< difftime(tend, tstart) <<" second(s)."<< std::endl;
+
   // Finish
   return (0);
 }
