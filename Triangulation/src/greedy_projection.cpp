@@ -39,7 +39,7 @@ main (int argc, char** argv)
   tree->setInputCloud (cloud);
   n.setInputCloud (cloud);
   n.setSearchMethod (tree);
-  n.setKSearch (20);
+  n.setKSearch (30);
   n.compute (*normals);
   //* normals should not contain the point normals + surface curvatures
   std::cout << "Normals are estimated" << std::endl;
