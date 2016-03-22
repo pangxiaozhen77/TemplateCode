@@ -2,7 +2,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/visualization/cloud_viewer.h>
-#include <pcl/io/ply_io.h>
+#include <pcl/io/pcd_io.h>
 #include <pcl/keypoints/iss_3d.h>
 
 double
@@ -39,9 +39,16 @@ computeCloudResolution (const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr &clou
 int
 main (int argc, char** argv)
 {
+  // Start timer
+   time_t tstart, tend;
+   tstart = time(0);
+
+  // Load input file into a PointCloud<T> with an appropriate type
+   std::string scene = argv[1];
+
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGBA>);
 
-  if (pcl::io::loadPLYFile<pcl::PointXYZRGBA> (argv[1], *cloud) == -1) //* load the file
+  if (pcl::io::loadPCDFile<pcl::PointXYZRGBA> (scene + ".pcd", *cloud) == -1) //* load the file
   {
     PCL_ERROR ("Couldn't read input file \n");
     return (-1);
@@ -97,15 +104,13 @@ main (int argc, char** argv)
             << model_keypoints->width * model_keypoints->height
             << std::endl;
 
+// save Keypoint Pointcloud
+  pcl::io::savePCDFileASCII (scene + "_Keypoints.pcd", *model_keypoints);
+  std::cout << "Keypoint Cloud is saved" << std::endl;
 
-  //
-  // visualize
-  //
+  // End Timer
+   tend = time(0);
+   std::cout << "It took "<< difftime(tend, tstart) <<" second(s)."<< std::endl;
 
-  pcl::visualization::CloudViewer viewer ("Simple Cloud Viewer");
-  viewer.showCloud (model_keypoints);
-  while (!viewer.wasStopped ())
-  {
-  }
   return (0);
 }

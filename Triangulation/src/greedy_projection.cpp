@@ -4,6 +4,7 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/surface/gp3.h>
 #include <pcl/io/vtk_io.h>
+#include <pcl/io/ply_io.h>
 #include <iostream>
 #include <ctime>
 
@@ -17,9 +18,10 @@ main (int argc, char** argv)
    tstart = time(0);
 
   // Load input file into a PointCloud<T> with an appropriate type
+   std::string scene = argv[1];
    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
 
-         if (pcl::io::loadPCDFile<pcl::PointXYZ> (argv[1], *cloud) == -1) //* load the file
+         if (pcl::io::loadPCDFile<pcl::PointXYZ> (scene + ".pcd", *cloud) == -1) //* load the file
          {
            PCL_ERROR ("Couldn't read input file \n");
            return (-1);
@@ -79,7 +81,8 @@ main (int argc, char** argv)
   std::vector<int> parts = gp3.getPartIDs();
   std::vector<int> states = gp3.getPointStates();
 
-  pcl::io::saveVTKFile ("mesh.vtk", triangles);
+  // Save file
+  pcl::io::savePLYFile (scene + ".ply", triangles);
   std::cout << "Mesh is saved" << std::endl;
 
   // End Timer

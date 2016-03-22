@@ -157,7 +157,7 @@ boost::shared_ptr<pcl::visualization::PCLVisualizer> shapesVis (pcl::PointCloud<
 
 
 boost::shared_ptr<pcl::visualization::PCLVisualizer> viewportsVis (
-    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud, pcl::PointCloud<pcl::Normal>::ConstPtr normals1, pcl::PointCloud<pcl::Normal>::ConstPtr normals2)
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud2)
 {
   // --------------------------------------------------------
   // -----Open 3D viewer and add point cloud and normals-----
@@ -165,26 +165,20 @@ boost::shared_ptr<pcl::visualization::PCLVisualizer> viewportsVis (
   boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
   viewer->initCameraParameters ();
 
-  int v1(0);
+  int v1(1);
   viewer->createViewPort(0.0, 0.0, 0.5, 1.0, v1);
-  viewer->setBackgroundColor (0, 0, 0, v1);
-  viewer->addText("Radius: 0.01", 10, 10, "v1 text", v1);
+  viewer->setBackgroundColor (255, 255, 255, v1);
   pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
-  viewer->addPointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud1", v1);
+  viewer->addPointCloud<pcl::PointXYZRGB> (cloud, rgb, "cloud1", v1);
 
-  int v2(0);
+  int v2(2);
   viewer->createViewPort(0.5, 0.0, 1.0, 1.0, v2);
-  viewer->setBackgroundColor (0.3, 0.3, 0.3, v2);
-  viewer->addText("Radius: 0.1", 10, 10, "v2 text", v2);
-  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> single_color(cloud, 0, 255, 0);
-  viewer->addPointCloud<pcl::PointXYZRGB> (cloud, single_color, "sample cloud2", v2);
+  viewer->setBackgroundColor (255, 255, 255, v2);
+  pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb2(cloud2);
+  viewer->addPointCloud<pcl::PointXYZRGB> (cloud2, rgb2, "cloud2", v2);
 
-  viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud1");
-  viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud2");
-  viewer->addCoordinateSystem (1.0);
-
-  viewer->addPointCloudNormals<pcl::PointXYZRGB, pcl::Normal> (cloud, normals1, 10, 0.05, "normals1", v1);
-  viewer->addPointCloudNormals<pcl::PointXYZRGB, pcl::Normal> (cloud, normals2, 10, 0.05, "normals2", v2);
+  viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "cloud1");
+  viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "cloud2");
 
   return (viewer);
 }
@@ -243,6 +237,9 @@ boost::shared_ptr<pcl::visualization::PCLVisualizer> interactionCustomizationVis
 int
 main (int argc, char** argv)
 {
+  std::string cloud_name_1 = argv[1];
+  std::string cloud_name_2 = argv[2];
+
   // --------------------------------------
   // -----Parse Command Line Arguments-----
   // --------------------------------------
@@ -305,7 +302,7 @@ main (int argc, char** argv)
   pcl::PointCloud<pcl::PointXYZ>::Ptr basic_cloud_ptr (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud_ptr (new pcl::PointCloud<pcl::PointXYZRGB>);
 
-  if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (argv[1], *point_cloud_ptr) == -1) //* load the file
+  if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (cloud_name_1, *point_cloud_ptr) == -1) //* load the file
         {
           PCL_ERROR ("Couldn't read input file \n");
           return (-1);
@@ -317,7 +314,8 @@ main (int argc, char** argv)
         std::cout << "width = " << point_cloud_ptr->width
                   << "    height = " << point_cloud_ptr->height
                   << std::endl;
-  if (pcl::io::loadPCDFile<pcl::PointXYZ> (argv[1], *basic_cloud_ptr) == -1) //* load the file
+
+  if (pcl::io::loadPCDFile<pcl::PointXYZ> (cloud_name_1, *basic_cloud_ptr) == -1) //* load the file
         {
           PCL_ERROR ("Couldn't read input file \n");
           return (-1);
@@ -330,16 +328,6 @@ main (int argc, char** argv)
                   << "    height = " << basic_cloud_ptr->height
                   << std::endl;
 
-        //extract point
-
-        int column = 240;
-        int row = 180;
-        pcl::PointCloud<pcl::PointXYZRGB> cloudRGB = *point_cloud_ptr;
-        pcl::PointXYZRGB pointRGB = cloudRGB(column,row);
-        std::cout <<"Point content" << pointRGB << std::endl;
-        pcl::PointCloud<pcl::PointXYZ> cloud = *basic_cloud_ptr;
-        pcl::PointXYZ point = cloud(column,row);
-        std::cout <<"Point content" << point << std::endl;
 
 pcl::PointCloud<pcl::Normal>::Ptr cloud_normals1 (new pcl::PointCloud<pcl::Normal>);
 pcl::PointCloud<pcl::Normal>::Ptr cloud_normals2 (new pcl::PointCloud<pcl::Normal>);
@@ -391,7 +379,20 @@ if (normals || shapes || interaction_customization)
   }
   else if (viewports)
   {
-    viewer = viewportsVis(point_cloud_ptr, cloud_normals1, cloud_normals2);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud_2_ptr (new pcl::PointCloud<pcl::PointXYZRGB>);
+    if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (cloud_name_2, *point_cloud_2_ptr) == -1) //* load the file
+            {
+              PCL_ERROR ("Couldn't read input file \n");
+              return (-1);
+            }
+            std::cout << "Loaded "
+                      << basic_cloud_ptr->width * basic_cloud_ptr->height
+                      << " data points from input file "
+                      << std::endl;
+            std::cout << "width = " << basic_cloud_ptr->width
+                      << "    height = " << basic_cloud_ptr->height
+                      << std::endl;
+    viewer = viewportsVis(point_cloud_ptr, point_cloud_2_ptr);
   }
   else if (interaction_customization)
   {

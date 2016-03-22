@@ -10,6 +10,7 @@
 #include <pcl/console/parse.h>
 #include <pcl/point_types.h>
 #include <ctime>
+#include <pcl/filters/passthrough.h>
 
 
 int
@@ -21,7 +22,20 @@ main (int argc, char** argv)
 
   // amount of clouds to average
   int nclouds = 20;
+
+  // Should RGB be averaged
   bool RGBaverage = true;
+
+  // Clipping parameters
+  float xmax = 0.5;
+  float xmin = -0.2;
+
+  float ymax = 0.3;
+  float ymin = -0.3;
+
+  float zmax = 0.7;
+  float zmin = 0.65;
+
 
   // Load Base Cloud (including RGB)
   pcl::PointCloud<pcl::PointXYZRGB> base_cloud;
@@ -69,7 +83,7 @@ main (int argc, char** argv)
           pcl::PointXYZRGB point_base_cloud = base_cloud(i,j);
           pcl::PointXYZRGB point_new_cloud = new_cloud(i,j);
 
-          if (point_base_cloud.z != 0 && point_new_cloud.z != 0)
+          if (point_base_cloud.z != 0 && point_new_cloud.z != 0 && std::abs(point_base_cloud.z - point_new_cloud.z) < 0.02)
           {
             point_base_cloud.x = (point_base_cloud.x * (k-1) + point_new_cloud.x)/k;
             point_base_cloud.y = (point_base_cloud.y * (k-1) + point_new_cloud.y)/k;
@@ -87,7 +101,20 @@ main (int argc, char** argv)
             point_base_cloud.g = point_new_cloud.g;
             point_base_cloud.b = point_new_cloud.b;
           }
-          base_cloud(i,j) = point_base_cloud;
+
+          if (k == nclouds && (   point_base_cloud.x > xmax || point_base_cloud.x < xmin ||
+                                  point_base_cloud.y > ymax || point_base_cloud.y < ymin ||
+                                  point_base_cloud.z > zmax || point_base_cloud.z < zmin ))
+          {
+            base_cloud(i,j).x = 0;
+            base_cloud(i,j).y = 0;
+            base_cloud(i,j).z = 0;
+          }
+          else
+          {
+            base_cloud(i,j) = point_base_cloud;
+          }
+
         }
           //std::cout << "Point (" << i << "," << j <<") :" << base_cloud(i,j) << std::endl;
       }
@@ -130,8 +157,26 @@ main (int argc, char** argv)
   tend = time(0);
   std::cout << "It took "<< difftime(tend, tstart) <<" second(s)."<< std::endl;
 
-  // saving file
+  // saving organised full file
   pcl::io::savePCDFileASCII (scene_name + "averaged.pcd", base_cloud);
+
+  // saving orgnanised cliped file
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+  *cloud  = base_cloud;
+
+  // Create the filtering object
+  pcl::PassThrough<pcl::PointXYZRGB> pass;
+  pass.setInputCloud (cloud);
+  pass.setFilterFieldName ("z");
+  pass.setFilterLimits (zmin, zmax);
+  pass.filter (*cloud_filtered);
+
+  // saving organised full cloud
+  pcl::io::savePCDFileASCII (scene_name + "averaged.pcd", base_cloud);
+
+  // saving unorganized clipped cloud
+  pcl::io::savePCDFileASCII (scene_name + "averaged_unorganized.pcd", *cloud_filtered);
 
   // Finish
     return 0;

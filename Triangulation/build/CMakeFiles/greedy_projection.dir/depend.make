@@ -249,6 +249,11 @@ CMakeFiles/greedy_projection.dir/greedy_projection.cpp.o: /usr/include/pcl-1.7/p
 CMakeFiles/greedy_projection.dir/greedy_projection.cpp.o: /usr/include/pcl-1.7/pcl/io/impl/pcd_io.hpp
 CMakeFiles/greedy_projection.dir/greedy_projection.cpp.o: /usr/include/pcl-1.7/pcl/io/lzf.h
 CMakeFiles/greedy_projection.dir/greedy_projection.cpp.o: /usr/include/pcl-1.7/pcl/io/pcd_io.h
+CMakeFiles/greedy_projection.dir/greedy_projection.cpp.o: /usr/include/pcl-1.7/pcl/io/ply/byte_order.h
+CMakeFiles/greedy_projection.dir/greedy_projection.cpp.o: /usr/include/pcl-1.7/pcl/io/ply/io_operators.h
+CMakeFiles/greedy_projection.dir/greedy_projection.cpp.o: /usr/include/pcl-1.7/pcl/io/ply/ply.h
+CMakeFiles/greedy_projection.dir/greedy_projection.cpp.o: /usr/include/pcl-1.7/pcl/io/ply/ply_parser.h
+CMakeFiles/greedy_projection.dir/greedy_projection.cpp.o: /usr/include/pcl-1.7/pcl/io/ply_io.h
 CMakeFiles/greedy_projection.dir/greedy_projection.cpp.o: /usr/include/pcl-1.7/pcl/io/vtk_io.h
 CMakeFiles/greedy_projection.dir/greedy_projection.cpp.o: /usr/include/pcl-1.7/pcl/kdtree/flann.h
 CMakeFiles/greedy_projection.dir/greedy_projection.cpp.o: /usr/include/pcl-1.7/pcl/kdtree/impl/kdtree_flann.hpp
