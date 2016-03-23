@@ -8,16 +8,29 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/console/parse.h>
 #include <pcl/point_types.h>
-#include <ctime>
 #include <pcl/filters/passthrough.h>
+#include <ctime>
 
+std::stack<clock_t> tictoc_stack;
+
+void tic()
+{
+  tictoc_stack.push(clock());
+}
+
+void toc()
+{
+  std::cout << "Time elapsed for filtering: "
+            << ((double)(clock()-tictoc_stack.top()))/CLOCKS_PER_SEC
+            << std::endl;
+  tictoc_stack.pop();
+}
 
 int
 main (int argc, char** argv)
 {
   // Start timer
-   time_t tstart, tend;
-   tstart = time(0);
+  tic();
 
   // amount of clouds to average
   int nclouds = 20;
@@ -32,14 +45,17 @@ main (int argc, char** argv)
   float ymax = 0.3;
   float ymin = -0.3;
 
-  float zmax = 0.7;
-  float zmin = 0.65;
+  float zmax = 1.3;
+  float zmin = 0.6;
 
 
   // Load Base Cloud (including RGB)
   pcl::PointCloud<pcl::PointXYZRGB> base_cloud;
+  pcl::PointCloud<pcl::PointXYZRGB> unorganized_cloud;
+
   std::string scene_name  = argv[1];
 
+  // Load Base Cloud (including RGB)
   if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (scene_name + "1.pcd", base_cloud) == -1) //* load the file
     {
       PCL_ERROR ("Couldn't read input file base \n");
@@ -53,10 +69,13 @@ main (int argc, char** argv)
   std::cout << "width = " << width << "    height = " << height << std::endl;
   std::cout << "Averaging over " << nclouds << " clouds.  RGB average: " << RGBaverage << std::endl;
 
+  // Start timer
+  tic();
+
   // Averaging over ncloud clouds
   for (int k=2; k<=nclouds; ++k)
   {
-    // adjust filepath
+    // adjust file path
     std::string temp_name = scene_name;
     std::stringstream k_act;
     k_act << k;
@@ -91,7 +110,8 @@ main (int argc, char** argv)
             point_base_cloud.g = (point_base_cloud.g * (k-1) + point_new_cloud.g)/k;
             point_base_cloud.b = (point_base_cloud.b * (k-1) + point_new_cloud.b)/k;
 
-          }else if (point_new_cloud.z != 0)
+          }
+          else if (point_new_cloud.z != 0)
           {
             point_base_cloud.x = point_new_cloud.x;
             point_base_cloud.y = point_new_cloud.y;
@@ -101,21 +121,19 @@ main (int argc, char** argv)
             point_base_cloud.b = point_new_cloud.b;
           }
 
-          if (k == nclouds && (   point_base_cloud.x > xmax || point_base_cloud.x < xmin ||
-                                  point_base_cloud.y > ymax || point_base_cloud.y < ymin ||
-                                  point_base_cloud.z > zmax || point_base_cloud.z < zmin ))
+          base_cloud(i,j) = point_base_cloud;
+
+          // clipping to unordered cloud
+          bool ispartofcloud =  point_base_cloud.x >= xmin && point_base_cloud.x <= xmax &&
+                                point_base_cloud.y >= ymin && point_base_cloud.y <= ymax &&
+                                point_base_cloud.z >= zmin && point_base_cloud.z <= zmax;
+
+          if (k == nclouds && ispartofcloud)
           {
-            base_cloud(i,j).x = 0;
-            base_cloud(i,j).y = 0;
-            base_cloud(i,j).z = 0;
-          }
-          else
-          {
-            base_cloud(i,j) = point_base_cloud;
+            unorganized_cloud.push_back(point_base_cloud);
           }
 
         }
-          //std::cout << "Point (" << i << "," << j <<") :" << base_cloud(i,j) << std::endl;
       }
     }
 
@@ -138,44 +156,46 @@ main (int argc, char** argv)
           pcl::PointXYZRGB point_base_cloud = base_cloud(i,j);
           pcl::PointXYZ point_new_cloud = new_cloud(i,j);
 
-          if (point_base_cloud.x != 0 || point_base_cloud.y != 0 || point_base_cloud.y != 0)
+          if (point_base_cloud.z != 0 && point_new_cloud.z != 0 && std::abs(point_base_cloud.z - point_new_cloud.z) < 0.02)
           {
             point_base_cloud.x = (point_base_cloud.x * (k-1) + point_new_cloud.x)/k;
             point_base_cloud.y = (point_base_cloud.y * (k-1) + point_new_cloud.y)/k;
             point_base_cloud.z = (point_base_cloud.z * (k-1) + point_new_cloud.z)/k;
-
-            base_cloud(i,j) = point_base_cloud;
           }
-          //std::cout << "Point (" << i << "," << j <<") :" << base_cloud(i,j) << std::endl;
+          else if (point_new_cloud.z != 0)
+          {
+            point_base_cloud.x = point_new_cloud.x;
+            point_base_cloud.y = point_new_cloud.y;
+            point_base_cloud.z = point_new_cloud.z;
+          }
+            base_cloud(i,j) = point_base_cloud;
+
+          // clipping to unordered cloud
+          bool ispartofcloud =   point_base_cloud.x >= xmin && point_base_cloud.x <= xmax &&
+                                 point_base_cloud.y >= ymin && point_base_cloud.y <= ymax &&
+                                 point_base_cloud.z >= zmin && point_base_cloud.z <= zmax;
+
+          if (k == nclouds && ispartofcloud)
+          {
+            unorganized_cloud.push_back(point_base_cloud);
+          }
         }
       }
     }
   }
 
+  // saving orgnanised clipped file
+
+
   // End Timer
-  tend = time(0);
-  std::cout << "It took "<< difftime(tend, tstart) <<" second(s)."<< std::endl;
-
-  // saving organised full file
-  pcl::io::savePCDFileASCII (scene_name + "averaged.pcd", base_cloud);
-
-  // saving orgnanised cliped file
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZRGB>);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-  *cloud  = base_cloud;
-
-  // Create the filtering object
-  pcl::PassThrough<pcl::PointXYZRGB> pass;
-  pass.setInputCloud (cloud);
-  pass.setFilterFieldName ("z");
-  pass.setFilterLimits (zmin, zmax);
-  pass.filter (*cloud_filtered);
+  toc();
 
   // saving organised full cloud
   pcl::io::savePCDFileASCII (scene_name + "averaged.pcd", base_cloud);
 
   // saving unorganized clipped cloud
-  pcl::io::savePCDFileASCII (scene_name + "averaged_unorganized.pcd", *cloud_filtered);
+  pcl::io::savePCDFileASCII (scene_name + "averaged_unorganized.pcd", unorganized_cloud);
+
 
   // Finish
     return 0;

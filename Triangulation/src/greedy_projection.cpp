@@ -8,14 +8,25 @@
 #include <iostream>
 #include <ctime>
 
+std::stack<clock_t> tictoc_stack;
 
+void tic()
+{
+  tictoc_stack.push(clock());
+}
+
+void toc()
+{
+  std::cout << "Time elapsed for filtering: "
+            << ((double)(clock()-tictoc_stack.top()))/CLOCKS_PER_SEC
+            << std::endl;
+  tictoc_stack.pop();
+}
 
 int
 main (int argc, char** argv)
 {
-  // Start timer
-   time_t tstart, tend;
-   tstart = time(0);
+
 
   // Load input file into a PointCloud<T> with an appropriate type
    std::string scene = argv[1];
@@ -33,6 +44,9 @@ main (int argc, char** argv)
 
   //* the data should be available in cloud
   std::cout << "PCD is loaded" << std::endl;
+
+  // Start timer
+  tic();
 
   // Normal estimation*
   pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> n;
@@ -81,13 +95,14 @@ main (int argc, char** argv)
   std::vector<int> parts = gp3.getPartIDs();
   std::vector<int> states = gp3.getPointStates();
 
+  // End Timer
+  toc();
+
   // Save file
   pcl::io::savePLYFile (scene + ".ply", triangles);
   std::cout << "Mesh is saved" << std::endl;
 
-  // End Timer
-  tend = time(0);
-  std::cout << "It took "<< difftime(tend, tstart) <<" second(s)."<< std::endl;
+
 
   // Finish
   return (0);

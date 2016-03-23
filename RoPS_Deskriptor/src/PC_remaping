@@ -1,4 +1,8 @@
- if (pcl::io::loadPCDFile<pcl::PointXYZ> (argv[1], *cloud_XYZ) == -1)
+pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_XYZ (new pcl::PointCloud<pcl::PointXYZ> ());
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_RGB (new pcl::PointCloud<pcl::PointXYZ> ());
+ 
+
+if (pcl::io::loadPCDFile<pcl::PointXYZ> (argv[1], *cloud_XYZ) == -1)
     {
       PCL_ERROR ("Couldn't read input file base \n");
       return (-1);
@@ -36,3 +40,5 @@
   }
   *cloud_RGB = temp_cloud_RGB;
   std::cout << "Clouds are remapped."<<std::endl;
+
+

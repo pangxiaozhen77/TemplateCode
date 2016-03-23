@@ -1,11 +1,28 @@
 #include <pcl/features/rops_estimation.h>
 #include <pcl/io/pcd_io.h>
 #include <iostream>
+#include <ctime>
+
+std::stack<clock_t> tictoc_stack;
+
+void tic()
+{
+  tictoc_stack.push(clock());
+}
+
+void toc()
+{
+  std::cout << "Time elapsed for filtering: "
+            << ((double)(clock()-tictoc_stack.top()))/CLOCKS_PER_SEC
+            << std::endl;
+  tictoc_stack.pop();
+}
+
+
 int main (int argc, char** argv)
 {
   // Start timer
-   time_t tstart, tend;
-   tstart = time(0);
+  tic();
 
   if (argc != 4)
     return (-1);
@@ -19,9 +36,12 @@ int main (int argc, char** argv)
       return (-1);
     }
 
+  //pcl:: PointXYZRGB point = cloud->operator ()(1,2);
+
   int height = cloud->height;
   int width = cloud->width;
   int size  = width * height;
+  std::cout << "Loaded " << size << " points." << std::endl;
 
   //TODO load PKeypoint Indices, use other technique to determine keypoints
   pcl::PointIndicesPtr indices = boost::shared_ptr <pcl::PointIndices> (new pcl::PointIndices ());
@@ -30,7 +50,7 @@ int main (int argc, char** argv)
 //  for (std::string line; std::getline (indices_file, line);)
 //  {
 //    std::istringstream in (line);
-//    unsigned int index = 0;
+//    unsigne  std::cout << argv[3] << std::endl;d int index = 0;
 //    in >> index;
 //    indices->indices.push_back (index - 1);
 //  }
@@ -39,14 +59,13 @@ int main (int argc, char** argv)
   {
     indices->indices.push_back (k);
   }
-
-  std::cout <<"Indices are generated." <<std::endl;
+  std::cout << "Using " << indices->indices.size() << " indices." << std::endl;
 
   // load vertices
   std::vector <pcl::Vertices> triangles;
   std::ifstream triangles_file;
   triangles_file.open (argv[3], std::ifstream::in);
-  std::cout << argv[3] << std::endl;
+
   for (std::string line; std::getline (triangles_file, line);)
     {
       pcl::Vertices triangle;
@@ -93,7 +112,6 @@ int main (int argc, char** argv)
   //TODO Save Histogram and LRF
 
   // End Timer
-  tend = time(0);
-  std::cout << "It took "<< difftime(tend, tstart) <<" second(s)."<< std::endl;
+  toc();
   return (0);
 }
