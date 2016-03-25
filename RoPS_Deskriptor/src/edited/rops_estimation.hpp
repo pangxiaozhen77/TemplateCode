@@ -35,12 +35,14 @@
  * Author : Sergey Ushakov
  * Email  : sergey.s.ushakov@mail.ru
  *
+ * Modified by: Yves Zimmermann
+ *
  */
 
 #ifndef PCL_ROPS_ESTIMATION_HPP_
 #define PCL_ROPS_ESTIMATION_HPP_
 
-#include "rops_estimation.h"
+#include <rops_estimation.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT>
@@ -130,7 +132,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::getTriangles (std::vector <pcl::Verti
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output, Eigen::Matrix3f& lrf_matrix, bool& iskeypoint)
+pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output, Eigen::Matrix3f& lrf_matrix, bool& iskeypoint)
 {
   if (triangles_.size () == 0)
   {
@@ -151,7 +153,6 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output
     std::vector <int> local_points;
     getLocalSurface (input_->points[(*indices_)[i_point]], local_triangles, local_points);
 
-    Eigen::Matrix3f lrf_matrix;
     computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);
 
     PointCloudIn transformed_cloud;
@@ -297,6 +298,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeLRF (const PointInT& point, co
   Eigen::Vector3f v1, v2, v3;
   computeEigenVectors (overall_scatter_matrix, v1, v2, v3, iskeypoint);
 
+  // Find orientation of LRF
   float h1 = 0.0f;
   float h3 = 0.0f;
   for (it = local_triangles.begin (), i_triangle = 0; it != local_triangles.end (); it++, i_triangle++)
@@ -348,8 +350,9 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeEigenVectors (const Eigen::Mat
   unsigned int temp = 0;
   unsigned int major_index = 0;
   unsigned int middle_index = 1;
-  unsigned int minor_index = 2;
+  unsigned int minor_index = 2 ;
 
+  // Get the right order of eigenvalues
   if (eigen_values.real () (major_index) < eigen_values.real () (middle_index))
   {
     temp = major_index;

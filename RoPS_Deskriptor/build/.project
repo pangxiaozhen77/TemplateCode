@@ -154,6 +154,16 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
+			<name>[Targets]/[exe] rops_descriptor/Header Files/feature.hpp</name>
+			<type>1</type>
+			<location>/home/yves/git/TemplateCode/RoPS_Deskriptor/src/feature.hpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] rops_descriptor/Header Files/rops_estimation.hpp</name>
+			<type>1</type>
+			<location>/home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_estimation.hpp</location>
+		</link>
+		<link>
 			<name>[Targets]/[exe] rops_descriptor/CMake Rules</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>

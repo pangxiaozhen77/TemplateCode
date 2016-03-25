@@ -1,0 +1,10 @@
+Change Log of project RoPS_Deskriptor:
+
+- Added the Pointers for lrf_matrix and iskeypoint to the function "computeLRF" in rops_estimation.hpp
+- Changed the call of "computeLRF" in computeFeature in rops_estimation.hpp.
+- changed call of computeEigenVectors in computeLRF in rops_estimation.hpp added iskeypoint.
+- changed computeEigenvectors, calculation of isKeypoint is not made jet.
+- changed Arguments of computeFeature in hpp and h.
+
+
+

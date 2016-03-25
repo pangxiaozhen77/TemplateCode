@@ -35,13 +35,15 @@
  * Author : Sergey Ushakov
  * Email  : sergey.s.ushakov@mail.ru
  *
+ *
+ * Modified by : Yves Zimmermann
  */
 
 #ifndef PCL_ROPS_ESIMATION_H_
 #define PCL_ROPS_ESIMATION_H_
 
 #include <pcl/PolygonMesh.h>
-#include "feature.h"
+#include "pcl/features/feature.h"
 #include <set>
 
 namespace pcl

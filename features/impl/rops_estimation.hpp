@@ -40,7 +40,7 @@
 #ifndef PCL_ROPS_ESTIMATION_HPP_
 #define PCL_ROPS_ESTIMATION_HPP_
 
-#include "rops_estimation.h"
+#include <pcl/features/rops_estimation.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT>
@@ -130,7 +130,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::getTriangles (std::vector <pcl::Verti
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output, Eigen::Matrix3f& lrf_matrix, bool& iskeypoint)
+pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output)
 {
   if (triangles_.size () == 0)
   {
@@ -152,7 +152,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output
     getLocalSurface (input_->points[(*indices_)[i_point]], local_triangles, local_points);
 
     Eigen::Matrix3f lrf_matrix;
-    computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);
+    computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix);
 
     PointCloudIn transformed_cloud;
     transformCloud (input_->points[(*indices_)[i_point]], lrf_matrix, local_points, transformed_cloud);
@@ -233,7 +233,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::getLocalSurface (const PointInT& poin
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-pcl::ROPSEstimation <PointInT, PointOutT>::computeLRF (const PointInT& point, const std::set <unsigned int>& local_triangles, Eigen::Matrix3f& lrf_matrix, bool& iskeypoint) const
+pcl::ROPSEstimation <PointInT, PointOutT>::computeLRF (const PointInT& point, const std::set <unsigned int>& local_triangles, Eigen::Matrix3f& lrf_matrix) const
 {
   const unsigned int number_of_triangles = static_cast <unsigned int> (local_triangles.size ());
 
@@ -295,7 +295,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeLRF (const PointInT& point, co
   }
 
   Eigen::Vector3f v1, v2, v3;
-  computeEigenVectors (overall_scatter_matrix, v1, v2, v3, iskeypoint);
+  computeEigenVectors (overall_scatter_matrix, v1, v2, v3);
 
   float h1 = 0.0f;
   float h3 = 0.0f;
@@ -335,7 +335,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeLRF (const PointInT& point, co
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
 pcl::ROPSEstimation <PointInT, PointOutT>::computeEigenVectors (const Eigen::Matrix3f& matrix,
-  Eigen::Vector3f& major_axis, Eigen::Vector3f& middle_axis, Eigen::Vector3f& minor_axis, bool& iskeypoint) const
+  Eigen::Vector3f& major_axis, Eigen::Vector3f& middle_axis, Eigen::Vector3f& minor_axis) const
 {
   Eigen::EigenSolver <Eigen::Matrix3f> eigen_solver;
   eigen_solver.compute (matrix);
@@ -370,9 +370,6 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeEigenVectors (const Eigen::Mat
     minor_index = middle_index;
     middle_index = temp;
   }
-
-  //TODO implement Keypoint selection here using parameters saved in the class and eigenvalues
-  iskeypoint = true;
 
   major_axis = eigen_vectors.col (major_index).real ();
   middle_axis = eigen_vectors.col (middle_index).real ();
