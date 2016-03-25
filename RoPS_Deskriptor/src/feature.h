@@ -184,7 +184,7 @@ namespace pcl
         * \param[out] output the resultant point cloud model dataset containing the estimated features
         */
       void
-      compute (PointCloudOut &output, pcl::PointCloud<pcl::ReferenceFrame> &LRFs);
+      compute (PointCloudOut &output, pcl::PointCloud<pcl::ReferenceFrame> &LRFs, std::vector<bool> &keypoints);
 
     protected:
       /** \brief The feature name. */
@@ -265,7 +265,7 @@ namespace pcl
         * \param[out] output the resultant features
         */
       virtual void
-      computeFeature (PointCloudOut &output, pcl::PointCloud<pcl::ReferenceFrame> &LRFs) = 0;
+      computeFeature (PointCloudOut &output, pcl::PointCloud<pcl::ReferenceFrame> &LRFs, std::vector<bool> &keypoints) = 0;
 
     public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW

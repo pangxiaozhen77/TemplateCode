@@ -143,7 +143,7 @@ pcl::Feature<PointInT, PointOutT>::deinitCompute ()
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-pcl::Feature<PointInT, PointOutT>::compute (PointCloudOut &output, pcl::PointCloud<pcl::ReferenceFrame> &LRFs)
+pcl::Feature<PointInT, PointOutT>::compute (PointCloudOut &output, pcl::PointCloud<pcl::ReferenceFrame> &LRFs, std::vector<bool> &keypoints)
 {
   if (!initCompute ())
   {
@@ -174,7 +174,7 @@ pcl::Feature<PointInT, PointOutT>::compute (PointCloudOut &output, pcl::PointClo
   output.is_dense = input_->is_dense;
 
   // Perform the actual feature computation
-  computeFeature (output, LRFs);
+  computeFeature (output, LRFs, keypoints);
 
   deinitCompute ();
 }

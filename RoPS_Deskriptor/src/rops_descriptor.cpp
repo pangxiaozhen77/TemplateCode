@@ -112,8 +112,11 @@ int main (int argc, char** argv)
 
   pcl::PointCloud<pcl::Histogram <135> >::Ptr histograms (new pcl::PointCloud <pcl::Histogram <135> > ());
   pcl::PointCloud<pcl::ReferenceFrame>::Ptr LRFs (new pcl::PointCloud <pcl::ReferenceFrame> ());
+  std::vector<bool>* keypoints (new std::vector<bool> ());
 
-  feature_estimator.compute (*histograms, *LRFs);
+  feature_estimator.compute (*histograms, *LRFs, *keypoints);
+
+  //TODO calculate the short descriptor, throwing out all non-keypoints form histograms
 
   // Save file
   //pcl::io::savePCDFileASCII  (scene_name + "_rops.pcd", *histograms);

@@ -130,7 +130,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::getTriangles (std::vector <pcl::Verti
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output, pcl::PointCloud<pcl::ReferenceFrame> &LRFs)
+pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output, pcl::PointCloud<pcl::ReferenceFrame> &LRFs, std::vector<bool> &keypoints)
 {
   if (triangles_.size () == 0)
   {
@@ -152,53 +152,70 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output
     getLocalSurface (input_->points[(*indices_)[i_point]], local_triangles, local_points);
 
     Eigen::Matrix3f lrf_matrix;
+    bool iskeypoint;
+
     computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);
 
-    PointCloudIn transformed_cloud;
-    transformCloud (input_->points[(*indices_)[i_point]], lrf_matrix, local_points, transformed_cloud);
-
-    PointInT axis[3];
-    axis[0].x = 1.0f; axis[0].y = 0.0f; axis[0].z = 0.0f;
-    axis[1].x = 0.0f; axis[1].y = 1.0f; axis[1].z = 0.0f;
-    axis[2].x = 0.0f; axis[2].y = 0.0f; axis[2].z = 1.0f;
-    std::vector <float> feature;
-    for (unsigned int i_axis = 0; i_axis < 3; i_axis++)
+    if (iskeypoint) //else LRF will not be pushed back and the point of the FeatureCloud stays as initialised
     {
-      float theta = step_;
-      do
-      {
-        //rotate local surface and get bounding box
-        PointCloudIn rotated_cloud;
-        Eigen::Vector3f min, max;
-        rotateCloud (axis[i_axis], theta, transformed_cloud, rotated_cloud, min, max);
+        // push back LRF to the LRF vector
+        pcl::ReferenceFrame LRF;
+        LRF.rf = lrf_matrix;
+        LRFs.push_back(LRF);
 
-        //for each projection (XY, XZ and YZ) compute distribution matrix and central moments
-        for (unsigned int i_proj = 0; i_proj < 3; i_proj++)
+        // Mark Point as keypoint
+        keypoints.push_back(true);
+
+        PointCloudIn transformed_cloud;
+        transformCloud (input_->points[(*indices_)[i_point]], lrf_matrix, local_points, transformed_cloud);
+
+        PointInT axis[3];
+        axis[0].x = 1.0f; axis[0].y = 0.0f; axis[0].z = 0.0f;
+        axis[1].x = 0.0f; axis[1].y = 1.0f; axis[1].z = 0.0f;
+        axis[2].x = 0.0f; axis[2].y = 0.0f; axis[2].z = 1.0f;
+        std::vector <float> feature;
+        for (unsigned int i_axis = 0; i_axis < 3; i_axis++)
         {
-          Eigen::MatrixXf distribution_matrix;
-          distribution_matrix.resize (number_of_bins_, number_of_bins_);
-          getDistributionMatrix (i_proj, min, max, rotated_cloud, distribution_matrix);
+          float theta = step_;
+          do
+          {
+            //rotate local surface and get bounding box
+            PointCloudIn rotated_cloud;
+            Eigen::Vector3f min, max;
+            rotateCloud (axis[i_axis], theta, transformed_cloud, rotated_cloud, min, max);
 
-          std::vector <float> moments;
-          computeCentralMoments (distribution_matrix, moments);
+            //for each projection (XY, XZ and YZ) compute distribution matrix and central moments
+            for (unsigned int i_proj = 0; i_proj < 3; i_proj++)
+            {
+              Eigen::MatrixXf distribution_matrix;
+              distribution_matrix.resize (number_of_bins_, number_of_bins_);
+              getDistributionMatrix (i_proj, min, max, rotated_cloud, distribution_matrix);
 
-          feature.insert (feature.end (), moments.begin (), moments.end ());
+              std::vector <float> moments;
+              computeCentralMoments (distribution_matrix, moments);
+
+              feature.insert (feature.end (), moments.begin (), moments.end ());
+            }
+
+            theta += step_;
+          } while (theta < 90.0f);
         }
 
-        theta += step_;
-      } while (theta < 90.0f);
+        float norm = 0.0f;
+        for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
+          norm += feature[i_dim];
+        if (abs (norm) < std::numeric_limits <float>::epsilon ())
+          norm = 1.0f / norm;
+        else
+          norm = 1.0f;
+
+        for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
+          output.points[i_point].histogram[i_dim] = feature[i_dim] * norm;
+    }else
+    {
+      // Mark Point as non-keypoint
+      keypoints.push_back(false);
     }
-
-    float norm = 0.0f;
-    for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
-      norm += feature[i_dim];
-    if (abs (norm) < std::numeric_limits <float>::epsilon ())
-      norm = 1.0f / norm;
-    else
-      norm = 1.0f;
-
-    for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
-      output.points[i_point].histogram[i_dim] = feature[i_dim] * norm;
   }
 }
 
