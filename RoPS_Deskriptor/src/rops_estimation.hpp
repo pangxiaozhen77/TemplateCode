@@ -130,7 +130,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::getTriangles (std::vector <pcl::Verti
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output, Eigen::Matrix3f& lrf_matrix, bool& iskeypoint)
+pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output, pcl::PointCloud<pcl::ReferenceFrame> &LRFs)
 {
   if (triangles_.size () == 0)
   {

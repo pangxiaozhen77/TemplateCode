@@ -121,7 +121,7 @@ namespace pcl
         * \param[out] output the resultant features
         */
       virtual void
-      computeFeature (PointCloudOut& output, Eigen::Matrix3f& lrf_matrix, bool& iskeypoint);
+      computeFeature (PointCloudOut& output, pcl::PointCloud<pcl::ReferenceFrame> &LRFs);
 
       /** \brief This method simply builds the list of triangles for every point.
         * The list of triangles for each point consists of indices of triangles it belongs to.

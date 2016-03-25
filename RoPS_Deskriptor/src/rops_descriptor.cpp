@@ -99,6 +99,7 @@ int main (int argc, char** argv)
   search_method->setInputCloud (cloud);
 
   pcl::ROPSEstimation <pcl::PointXYZRGB, pcl::Histogram <135> > feature_estimator;
+
   feature_estimator.setSearchMethod (search_method);
   feature_estimator.setSearchSurface (cloud);
   feature_estimator.setInputCloud (cloud);
@@ -110,7 +111,9 @@ int main (int argc, char** argv)
   feature_estimator.setSupportRadius (support_radius);
 
   pcl::PointCloud<pcl::Histogram <135> >::Ptr histograms (new pcl::PointCloud <pcl::Histogram <135> > ());
-  feature_estimator.compute (*histograms);
+  pcl::PointCloud<pcl::ReferenceFrame>::Ptr LRFs (new pcl::PointCloud <pcl::ReferenceFrame> ());
+
+  feature_estimator.compute (*histograms, *LRFs);
 
   // Save file
   //pcl::io::savePCDFileASCII  (scene_name + "_rops.pcd", *histograms);
