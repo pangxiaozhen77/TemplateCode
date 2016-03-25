@@ -1,7 +1,8 @@
-#include <pcl/features/rops_estimation.h>
+#include "rops_estimation.h"
 #include <pcl/io/pcd_io.h>
 #include <iostream>
 #include <ctime>
+#include <pcl/io/ply_io.h>
 
 std::stack<clock_t> tictoc_stack;
 
@@ -21,6 +22,10 @@ void toc()
 
 int main (int argc, char** argv)
 {
+
+  std::string scene_name  = argv[1];
+  std::cout << scene_name;
+
   // Start timer
   tic();
 
@@ -30,7 +35,7 @@ int main (int argc, char** argv)
   // load Point Cloud
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB> ());
 
-  if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (argv[1], *cloud) == -1)
+  if (pcl::io::loadPCDFile<pcl::PointXYZRGB> ((scene_name + ".pcd"), *cloud) == -1)
     {
       PCL_ERROR ("Couldn't read input file base \n");
       return (-1);
@@ -106,6 +111,11 @@ int main (int argc, char** argv)
 
   pcl::PointCloud<pcl::Histogram <135> >::Ptr histograms (new pcl::PointCloud <pcl::Histogram <135> > ());
   feature_estimator.compute (*histograms);
+
+  // Save file
+  //pcl::io::savePCDFileASCII  (scene_name + "_rops.pcd", *histograms);
+  //std::cout << "Deskriptor is saved" << std::endl;
+
 
   //TODO Implement RGB feature_estimator using XYZ for LRF and local surface but RGB for descriptor
 

@@ -33,19 +33,19 @@ main (int argc, char** argv)
   tic();
 
   // amount of clouds to average
-  int nclouds = 20;
+  int nclouds = 14;
 
   // Should RGB be averaged
   bool RGBaverage = true;
 
   // Clipping parameters
-  float xmax = 0.5;
+  float xmax = 0.2;
   float xmin = -0.2;
 
-  float ymax = 0.3;
-  float ymin = -0.3;
+  float ymax = 0.20;
+  float ymin = -0.25;
 
-  float zmax = 1.3;
+  float zmax = 0.85;
   float zmin = 0.6;
 
 
