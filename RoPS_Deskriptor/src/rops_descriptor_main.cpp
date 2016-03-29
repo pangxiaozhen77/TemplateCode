@@ -110,7 +110,6 @@ int main (int argc, char** argv)
   feature_estimator.setRadiusSearch (support_radius);
   feature_estimator.setNumberOfPartitionBins (number_of_partition_bins);
   feature_estimator.setNumberOfRotations (number_of_rotations);
-  std::cout <<"support radius:  " <<feature_estimator.getSupportRadius()<<std::endl;
   feature_estimator.setSupportRadius (support_radius);
 
   pcl::PointCloud<pcl::Histogram <135> >::Ptr histograms (new pcl::PointCloud <pcl::Histogram <135> > ());
@@ -120,12 +119,13 @@ int main (int argc, char** argv)
   feature_estimator.compute(*histograms, *LRFs, *keypoints);
 
   for (int i=0; i< size; i++){
-
-  std::cout << "Histogram " << histograms->points[i].histogram[1] << std::endl;
-  std::cout << "LRF size = " << LRFs->size() << std::endl;
-  std::cout << "Keypoints size = " << keypoints->size() << std::endl;
-
+ // std::cout << "Histogram " << histograms->points[i].histogram[1] << std::endl;
   }
+
+
+  std::cout << "LRF size = " << LRFs->size() << std::endl;
+  //std::cout << "Keypoints size = " << keypoints->size() << std::endl;
+
   //TODO calculate the short descriptor, throwing out all non-keypoints from histograms
 
   // Save file

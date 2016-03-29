@@ -35,16 +35,18 @@
  * Author : Sergey Ushakov
  * Email  : sergey.s.ushakov@mail.ru
  *
+ * Edited by: Yves Zimmermann
  */
 
-#ifndef PCL_ROPS_ESIMATION_H_
-#define PCL_ROPS_ESIMATION_H_
+#ifndef ROPS_Descriptor_H_
+#define ROPS_Descriptor_H_
 
 #include <pcl/PolygonMesh.h>
-#include "feature.h"
+#include "rops_feature.h"
 #include <set>
+#include "rops_estimation.hpp"
 
-namespace pcl
+namespace rops
 {
   /** \brief
     * This class implements the method for extracting RoPS features presented in the article
@@ -52,7 +54,7 @@ namespace pcl
     * Yulan Guo, Ferdous Sohel, Mohammed Bennamoun, Min Lu and Jianwei Wan.
     */
   template <typename PointInT, typename PointOutT>
-  class ROPSEstimation : public pcl::Feature <PointInT, PointOutT>
+  class ROPSDescriptor : public rops::Feature <PointInT, PointOutT>
   {
     public:
 
@@ -61,17 +63,17 @@ namespace pcl
       using Feature <PointInT, PointOutT>::surface_;
       using Feature <PointInT, PointOutT>::tree_;
 
-      typedef typename pcl::Feature <PointInT, PointOutT>::PointCloudOut PointCloudOut;
-      typedef typename pcl::Feature <PointInT, PointOutT>::PointCloudIn PointCloudIn;
+      typedef typename rops::Feature <PointInT, PointOutT>::PointCloudOut PointCloudOut;
+      typedef typename rops::Feature <PointInT, PointOutT>::PointCloudIn PointCloudIn;
 
     public:
 
       /** \brief Simple constructor. */
-      ROPSEstimation ();
+      ROPSDescriptor ();
 
       /** \brief Virtual destructor. */
       virtual
-      ~ROPSEstimation ();
+      ~ROPSDescriptor ();
 
       /** \brief Allows to set the number of partition bins that is used for distribution matrix calculation.
         * \param[in] number_of_bins number of partition bins
@@ -228,9 +230,6 @@ namespace pcl
   };
 }
 
-#define PCL_INSTANTIATE_ROPSEstimation(InT, OutT) template class pcl::ROPSEstimation<InT, OutT>;
-
-#include "rops_estimation.hpp"
-
+#define PCL_INSTANTIATE_ROPSDescriptor(InT, OutT) template class rops::ROPSDescriptor<InT, OutT>;
 
 #endif

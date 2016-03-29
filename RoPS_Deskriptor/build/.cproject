@@ -304,30 +304,30 @@
 <stopOnError>true</stopOnError>
 <useDefaultCommand>false</useDefaultCommand>
 </target>
-<target name="[exe] rops_descriptor" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
+<target name="[exe] rops_descriptor_main" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
 <buildCommand>/usr/bin/make</buildCommand>
 <buildArguments>-j8</buildArguments>
-<buildTarget>rops_descriptor</buildTarget>
+<buildTarget>rops_descriptor_main</buildTarget>
 <stopOnError>true</stopOnError>
 <useDefaultCommand>false</useDefaultCommand>
 </target>
-<target name="[exe] rops_descriptor/fast" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
+<target name="[exe] rops_descriptor_main/fast" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
 <buildCommand>/usr/bin/make</buildCommand>
 <buildArguments>-j8</buildArguments>
-<buildTarget>rops_descriptor/fast</buildTarget>
+<buildTarget>rops_descriptor_main/fast</buildTarget>
 <stopOnError>true</stopOnError>
 <useDefaultCommand>false</useDefaultCommand>
 </target>
-<target name="Build" path="[Targets]/[exe] rops_descriptor" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
+<target name="Build" path="[Targets]/[exe] rops_descriptor_main" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
 <buildCommand>/usr/bin/make</buildCommand>
 <buildArguments>-C "/home/yves/git/TemplateCode/RoPS_Deskriptor/build" -j8</buildArguments>
-<buildTarget>rops_descriptor</buildTarget>
+<buildTarget>rops_descriptor_main</buildTarget>
 <stopOnError>true</stopOnError>
 <useDefaultCommand>false</useDefaultCommand>
 </target>
-<target name="Clean" path="[Targets]/[exe] rops_descriptor" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
+<target name="Clean" path="[Targets]/[exe] rops_descriptor_main" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
 <buildCommand>/usr/bin/cmake</buildCommand>
-<buildArguments>-E chdir "/home/yves/git/TemplateCode/RoPS_Deskriptor/build" "/usr/bin/cmake" -P "CMakeFiles/rops_descriptor.dir/cmake_clean.cmake"</buildArguments>
+<buildArguments>-E chdir "/home/yves/git/TemplateCode/RoPS_Deskriptor/build" "/usr/bin/cmake" -P "CMakeFiles/rops_descriptor_main.dir/cmake_clean.cmake"</buildArguments>
 <buildTarget></buildTarget>
 <stopOnError>true</stopOnError>
 <useDefaultCommand>false</useDefaultCommand>
@@ -346,24 +346,24 @@
 <stopOnError>true</stopOnError>
 <useDefaultCommand>false</useDefaultCommand>
 </target>
-<target name="[obj] rops_descriptor.cpp.o" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
+<target name="[obj] rops_descriptor_main.cpp.o" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
 <buildCommand>/usr/bin/make</buildCommand>
 <buildArguments>-j8</buildArguments>
-<buildTarget>rops_descriptor.cpp.o</buildTarget>
+<buildTarget>rops_descriptor_main.cpp.o</buildTarget>
 <stopOnError>true</stopOnError>
 <useDefaultCommand>false</useDefaultCommand>
 </target>
-<target name="[pre] rops_descriptor.cpp.i" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
+<target name="[pre] rops_descriptor_main.cpp.i" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
 <buildCommand>/usr/bin/make</buildCommand>
 <buildArguments>-j8</buildArguments>
-<buildTarget>rops_descriptor.cpp.i</buildTarget>
+<buildTarget>rops_descriptor_main.cpp.i</buildTarget>
 <stopOnError>true</stopOnError>
 <useDefaultCommand>false</useDefaultCommand>
 </target>
-<target name="[to asm] rops_descriptor.cpp.s" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
+<target name="[to asm] rops_descriptor_main.cpp.s" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
 <buildCommand>/usr/bin/make</buildCommand>
 <buildArguments>-j8</buildArguments>
-<buildTarget>rops_descriptor.cpp.s</buildTarget>
+<buildTarget>rops_descriptor_main.cpp.s</buildTarget>
 <stopOnError>true</stopOnError>
 <useDefaultCommand>false</useDefaultCommand>
 </target>

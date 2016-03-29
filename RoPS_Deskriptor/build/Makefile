@@ -99,41 +99,41 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named rops_descriptor
+# Target rules for targets named rops_descriptor_main
 
 # Build rule for target.
-rops_descriptor: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 rops_descriptor
-.PHONY : rops_descriptor
+rops_descriptor_main: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 rops_descriptor_main
+.PHONY : rops_descriptor_main
 
 # fast build rule for target.
-rops_descriptor/fast:
-	$(MAKE) -f CMakeFiles/rops_descriptor.dir/build.make CMakeFiles/rops_descriptor.dir/build
-.PHONY : rops_descriptor/fast
+rops_descriptor_main/fast:
+	$(MAKE) -f CMakeFiles/rops_descriptor_main.dir/build.make CMakeFiles/rops_descriptor_main.dir/build
+.PHONY : rops_descriptor_main/fast
 
-rops_descriptor.o: rops_descriptor.cpp.o
-.PHONY : rops_descriptor.o
+rops_descriptor_main.o: rops_descriptor_main.cpp.o
+.PHONY : rops_descriptor_main.o
 
 # target to build an object file
-rops_descriptor.cpp.o:
-	$(MAKE) -f CMakeFiles/rops_descriptor.dir/build.make CMakeFiles/rops_descriptor.dir/rops_descriptor.cpp.o
-.PHONY : rops_descriptor.cpp.o
+rops_descriptor_main.cpp.o:
+	$(MAKE) -f CMakeFiles/rops_descriptor_main.dir/build.make CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.o
+.PHONY : rops_descriptor_main.cpp.o
 
-rops_descriptor.i: rops_descriptor.cpp.i
-.PHONY : rops_descriptor.i
+rops_descriptor_main.i: rops_descriptor_main.cpp.i
+.PHONY : rops_descriptor_main.i
 
 # target to preprocess a source file
-rops_descriptor.cpp.i:
-	$(MAKE) -f CMakeFiles/rops_descriptor.dir/build.make CMakeFiles/rops_descriptor.dir/rops_descriptor.cpp.i
-.PHONY : rops_descriptor.cpp.i
+rops_descriptor_main.cpp.i:
+	$(MAKE) -f CMakeFiles/rops_descriptor_main.dir/build.make CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.i
+.PHONY : rops_descriptor_main.cpp.i
 
-rops_descriptor.s: rops_descriptor.cpp.s
-.PHONY : rops_descriptor.s
+rops_descriptor_main.s: rops_descriptor_main.cpp.s
+.PHONY : rops_descriptor_main.s
 
 # target to generate assembly for a file
-rops_descriptor.cpp.s:
-	$(MAKE) -f CMakeFiles/rops_descriptor.dir/build.make CMakeFiles/rops_descriptor.dir/rops_descriptor.cpp.s
-.PHONY : rops_descriptor.cpp.s
+rops_descriptor_main.cpp.s:
+	$(MAKE) -f CMakeFiles/rops_descriptor_main.dir/build.make CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.s
+.PHONY : rops_descriptor_main.cpp.s
 
 # Help Target
 help:
@@ -143,10 +143,10 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... rops_descriptor"
-	@echo "... rops_descriptor.o"
-	@echo "... rops_descriptor.i"
-	@echo "... rops_descriptor.s"
+	@echo "... rops_descriptor_main"
+	@echo "... rops_descriptor_main.o"
+	@echo "... rops_descriptor_main.i"
+	@echo "... rops_descriptor_main.s"
 .PHONY : help
 
 

@@ -129,52 +129,52 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>[Targets]/[exe] rops_descriptor</name>
+			<name>[Targets]/[exe] rops_descriptor_main</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>[Targets]/[exe] rops_descriptor/</name>
+			<name>[Targets]/[exe] rops_descriptor_main/</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>[Targets]/[exe] rops_descriptor/Source Files</name>
+			<name>[Targets]/[exe] rops_descriptor_main/Source Files</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>[Targets]/[exe] rops_descriptor/Source Files/rops_descriptor.cpp</name>
+			<name>[Targets]/[exe] rops_descriptor_main/Source Files/rops_descriptor_main.cpp</name>
 			<type>1</type>
-			<location>/home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_descriptor.cpp</location>
+			<location>/home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_descriptor_main.cpp</location>
 		</link>
 		<link>
-			<name>[Targets]/[exe] rops_descriptor/Header Files</name>
+			<name>[Targets]/[exe] rops_descriptor_main/Header Files</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>[Targets]/[exe] rops_descriptor/Header Files/feature.hpp</name>
+			<name>[Targets]/[exe] rops_descriptor_main/Header Files/feature.hpp</name>
 			<type>1</type>
 			<location>/home/yves/git/TemplateCode/RoPS_Deskriptor/src/feature.hpp</location>
 		</link>
 		<link>
-			<name>[Targets]/[exe] rops_descriptor/Header Files/rops_estimation.hpp</name>
+			<name>[Targets]/[exe] rops_descriptor_main/Header Files/rops_estimation.hpp</name>
 			<type>1</type>
 			<location>/home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_estimation.hpp</location>
 		</link>
 		<link>
-			<name>[Targets]/[exe] rops_descriptor/CMake Rules</name>
+			<name>[Targets]/[exe] rops_descriptor_main/CMake Rules</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>[Targets]/[exe] rops_descriptor/Resources</name>
+			<name>[Targets]/[exe] rops_descriptor_main/Resources</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>[Targets]/[exe] rops_descriptor/Object Files</name>
+			<name>[Targets]/[exe] rops_descriptor_main/Object Files</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
 		</link>

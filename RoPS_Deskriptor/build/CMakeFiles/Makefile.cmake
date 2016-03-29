@@ -62,5 +62,5 @@ SET(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 SET(CMAKE_DEPEND_INFO_FILES
-  "CMakeFiles/rops_descriptor.dir/DependInfo.cmake"
+  "CMakeFiles/rops_descriptor_main.dir/DependInfo.cmake"
   )

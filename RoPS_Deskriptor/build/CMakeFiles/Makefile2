@@ -53,38 +53,38 @@ CMAKE_SOURCE_DIR = /home/yves/git/TemplateCode/RoPS_Deskriptor/src
 CMAKE_BINARY_DIR = /home/yves/git/TemplateCode/RoPS_Deskriptor/build
 
 #=============================================================================
-# Target rules for target CMakeFiles/rops_descriptor.dir
+# Target rules for target CMakeFiles/rops_descriptor_main.dir
 
 # All Build rule for target.
-CMakeFiles/rops_descriptor.dir/all:
-	$(MAKE) -f CMakeFiles/rops_descriptor.dir/build.make CMakeFiles/rops_descriptor.dir/depend
-	$(MAKE) -f CMakeFiles/rops_descriptor.dir/build.make CMakeFiles/rops_descriptor.dir/build
+CMakeFiles/rops_descriptor_main.dir/all:
+	$(MAKE) -f CMakeFiles/rops_descriptor_main.dir/build.make CMakeFiles/rops_descriptor_main.dir/depend
+	$(MAKE) -f CMakeFiles/rops_descriptor_main.dir/build.make CMakeFiles/rops_descriptor_main.dir/build
 	$(CMAKE_COMMAND) -E cmake_progress_report /home/yves/git/TemplateCode/RoPS_Deskriptor/build/CMakeFiles  1
-	@echo "Built target rops_descriptor"
-.PHONY : CMakeFiles/rops_descriptor.dir/all
+	@echo "Built target rops_descriptor_main"
+.PHONY : CMakeFiles/rops_descriptor_main.dir/all
 
 # Include target in all.
-all: CMakeFiles/rops_descriptor.dir/all
+all: CMakeFiles/rops_descriptor_main.dir/all
 .PHONY : all
 
 # Build rule for subdir invocation for target.
-CMakeFiles/rops_descriptor.dir/rule: cmake_check_build_system
+CMakeFiles/rops_descriptor_main.dir/rule: cmake_check_build_system
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/yves/git/TemplateCode/RoPS_Deskriptor/build/CMakeFiles 1
-	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/rops_descriptor.dir/all
+	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/rops_descriptor_main.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/yves/git/TemplateCode/RoPS_Deskriptor/build/CMakeFiles 0
-.PHONY : CMakeFiles/rops_descriptor.dir/rule
+.PHONY : CMakeFiles/rops_descriptor_main.dir/rule
 
 # Convenience name for target.
-rops_descriptor: CMakeFiles/rops_descriptor.dir/rule
-.PHONY : rops_descriptor
+rops_descriptor_main: CMakeFiles/rops_descriptor_main.dir/rule
+.PHONY : rops_descriptor_main
 
 # clean rule for target.
-CMakeFiles/rops_descriptor.dir/clean:
-	$(MAKE) -f CMakeFiles/rops_descriptor.dir/build.make CMakeFiles/rops_descriptor.dir/clean
-.PHONY : CMakeFiles/rops_descriptor.dir/clean
+CMakeFiles/rops_descriptor_main.dir/clean:
+	$(MAKE) -f CMakeFiles/rops_descriptor_main.dir/build.make CMakeFiles/rops_descriptor_main.dir/clean
+.PHONY : CMakeFiles/rops_descriptor_main.dir/clean
 
 # clean rule for target.
-clean: CMakeFiles/rops_descriptor.dir/clean
+clean: CMakeFiles/rops_descriptor_main.dir/clean
 .PHONY : clean
 
 #=============================================================================

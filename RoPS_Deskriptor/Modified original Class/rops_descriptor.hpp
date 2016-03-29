@@ -35,6 +35,7 @@
  * Author : Sergey Ushakov
  * Email  : sergey.s.ushakov@mail.ru
  *
+ * Edited by: Yves Zimmermann
  */
 
 #ifndef PCL_ROPS_ESTIMATION_HPP_
@@ -146,6 +147,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
   unsigned int number_of_points = static_cast <unsigned int> (indices_->size ());
   output.points.resize (number_of_points, PointOutT ());
   keypoints.resize(indices_->size ());
+  LRFs.points.resize (number_of_points, pcl::ReferenceFrame () );
 
   for (unsigned int i_point = 0; i_point < number_of_points; i_point++)
   {
@@ -154,23 +156,21 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
     getLocalSurface (input_->points[(*indices_)[i_point]], local_triangles, local_points);
 
     Eigen::Matrix3f lrf_matrix;
-    bool iskeypoint = false;
-    computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);
-    std::cout << "LRF " << i_point << "computed." << std::endl;
+    bool iskeypoint;
 
+
+    computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);
+    keypoints[i_point] = true;
     if (iskeypoint) //else LRF will not be pushed back and the point of the FeatureCloud stays as initialised
     {
+        // push back LRF to the LRF vector
+        pcl::ReferenceFrame LRF;
+        LRF.rf = lrf_matrix;
+        LRFs.push_back(LRF);
 
         // Mark Point as keypoint
         keypoints[i_point] = true;
-      std::cout << "Point " << i_point << " is a keypoint." << std::endl;
-        // push back LRF to the LRF vector
-        pcl::ReferenceFrame LRF;
 
-        //LRF.rf = {lrf_matrix.block<3,1>(0,0),lrf_matrix.block<3,1>(0,1),lrf_matrix.block<3,1>(0,2)};
-        LRFs.push_back(LRF);
-
-        std::cout << "LRF is calculated." << std::endl;
         PointCloudIn transformed_cloud;
         transformCloud (input_->points[(*indices_)[i_point]], lrf_matrix, local_points, transformed_cloud);
 
@@ -395,19 +395,13 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeEigenVectors (const Eigen::Mat
   }
 
   //Keypoint selection according to Yu Zhong, "Intrinsic Shape Signatures:A Shape Descriptor for 3D Object Recognition"
- float keypoint_gamma21 = 0.9;
- float keypoint_gamma32 = 0.9;
- float rel21 = eigen_values.real () (middle_index)/eigen_values.real () (major_index);
- float rel32 = eigen_values.real () (minor_index)/eigen_values.real () (middle_index);
- std::cout << "rel21 = " << rel21 << "   rel32 = " << rel32 << std::endl;
-
-  if (rel21 < keypoint_gamma21 &&
-      rel32 < keypoint_gamma32)
+ int keypoint_gamma21 = 0.9;
+ int keypoint_gamma32 = 0.9;
+  if (eigen_values.real () (middle_index)/eigen_values.real () (major_index) < keypoint_gamma21 &&
+      eigen_values.real () (minor_index)/eigen_values.real () (middle_index) < Keypoint_amma32)
   {
-    std::cout << "Eigen: Point is a keypoint." << std::endl;
     iskeypoint = true;
   }else{
-    std::cout << "Eigen: Point NOT is a keypoint." << std::endl;
     iskeypoint = false;
   }
   major_axis = eigen_vectors.col (major_index).real ();
