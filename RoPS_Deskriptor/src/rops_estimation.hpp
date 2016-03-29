@@ -47,7 +47,7 @@ template <typename PointInT, typename PointOutT>
 pcl::ROPSEstimation <PointInT, PointOutT>::ROPSEstimation () :
   number_of_bins_ (5),
   number_of_rotations_ (3),
-  support_radius_ (1.0f),
+  support_radius_ (2.5f),
   sqr_support_radius_ (1.0f),
   step_ (30.0f),
   triangles_ (0),
@@ -130,8 +130,9 @@ pcl::ROPSEstimation <PointInT, PointOutT>::getTriangles (std::vector <pcl::Verti
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output, pcl::PointCloud<pcl::ReferenceFrame> &LRFs, std::vector<bool> &keypoints)
+pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output, pcl::PointCloud<pcl::ReferenceFrame>& LRFs, std::vector<bool>& keypoints)
 {
+  std::cout << "Computing Feature" <<std::endl;
   if (triangles_.size () == 0)
   {
     output.points.clear ();
@@ -144,6 +145,8 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output
   unsigned int feature_size = number_of_rotations_ * 3 * 3 * 5;
   unsigned int number_of_points = static_cast <unsigned int> (indices_->size ());
   output.points.resize (number_of_points, PointOutT ());
+  keypoints.resize(indices_->size ());
+  LRFs.points.resize (number_of_points, pcl::ReferenceFrame () );
 
   for (unsigned int i_point = 0; i_point < number_of_points; i_point++)
   {
@@ -154,8 +157,9 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output
     Eigen::Matrix3f lrf_matrix;
     bool iskeypoint;
 
-    computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);
 
+    computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);
+    keypoints[i_point] = true;
     if (iskeypoint) //else LRF will not be pushed back and the point of the FeatureCloud stays as initialised
     {
         // push back LRF to the LRF vector
@@ -164,7 +168,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output
         LRFs.push_back(LRF);
 
         // Mark Point as keypoint
-        keypoints.push_back(true);
+        keypoints[i_point] = true;
 
         PointCloudIn transformed_cloud;
         transformCloud (input_->points[(*indices_)[i_point]], lrf_matrix, local_points, transformed_cloud);
@@ -191,6 +195,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output
               distribution_matrix.resize (number_of_bins_, number_of_bins_);
               getDistributionMatrix (i_proj, min, max, rotated_cloud, distribution_matrix);
 
+//TODO make an other function to calculate c-RoPS
               std::vector <float> moments;
               computeCentralMoments (distribution_matrix, moments);
 
@@ -213,8 +218,8 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut &output
           output.points[i_point].histogram[i_dim] = feature[i_dim] * norm;
     }else
     {
-      // Mark Point as non-keypoint
-      keypoints.push_back(false);
+      // Mark Point as non-keypoint and leave i_point free
+      keypoints[i_point] = false;
     }
   }
 }
@@ -388,9 +393,16 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeEigenVectors (const Eigen::Mat
     middle_index = temp;
   }
 
-  //TODO implement Keypoint selection here using parameters saved in the class and eigenvalues
-  iskeypoint = true;
-
+  //Keypoint selection according to Yu Zhong, "Intrinsic Shape Signatures:A Shape Descriptor for 3D Object Recognition"
+ int keypoint_gamma21 = 0.9;
+ int keypoint_gamma32 = 0.9;
+  if (eigen_values.real () (middle_index)/eigen_values.real () (major_index) < keypoint_gamma21 &&
+      eigen_values.real () (minor_index)/eigen_values.real () (middle_index) < Keypoint_amma32)
+  {
+    iskeypoint = true;
+  }else{
+    iskeypoint = false;
+  }
   major_axis = eigen_vectors.col (major_index).real ();
   middle_axis = eigen_vectors.col (middle_index).real ();
   minor_axis = eigen_vectors.col (minor_index).real ();

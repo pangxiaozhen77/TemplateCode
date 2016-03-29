@@ -143,10 +143,11 @@ pcl::Feature<PointInT, PointOutT>::deinitCompute ()
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-pcl::Feature<PointInT, PointOutT>::compute (PointCloudOut &output, pcl::PointCloud<pcl::ReferenceFrame> &LRFs, std::vector<bool> &keypoints)
+pcl::Feature<PointInT, PointOutT>::compute (PointCloudOut& output, pcl::PointCloud<pcl::ReferenceFrame>& LRFs, std::vector<bool>& keypoints)
 {
   if (!initCompute ())
   {
+
     output.width = output.height = 0;
     output.points.clear ();
     return;
@@ -155,9 +156,13 @@ pcl::Feature<PointInT, PointOutT>::compute (PointCloudOut &output, pcl::PointClo
   // Copy the header
   output.header = input_->header;
 
+
   // Resize the output dataset
   if (output.points.size () != indices_->size ())
     output.points.resize (indices_->size ());
+  if (keypoints.size() != indices_->size())
+    keypoints.resize(indices_->size ());
+  std::cout << "resized keypoints!" << std::endl;
 
   // Check if the output will be computed for all points or only a subset
   // If the input width or height are not set, set output width as size

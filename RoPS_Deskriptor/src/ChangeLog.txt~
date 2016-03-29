@@ -5,6 +5,13 @@ Change Log of project RoPS_Deskriptor:
 - changed call of computeEigenVectors in computeLRF in rops_estimation.hpp added iskeypoint.
 - changed computeEigenvectors, calculation of isKeypoint is not made jet.
 - changed Arguments of computeFeature in hpp and h.
+- Problems with rops_descriptor -> construction of ROPSEstimator doesn't work.
+- Problems with feature.hpp --> deleted solvePlaneParameters form .h and .hpp --> feature.h and feature.hpp work with original rops_estimation.h/.hpp
+- changed the arguments of the project to deliver a PointCloud of LRFs to the main.
+- Initialized the Keypointselection in rops_estimation computeFeature. The output PC of features has defined length through the input cloud.
+	reducing the PC of Features must be made in rops_descriptor. Therefore a vector of booleans is needed to know which is a Keypoint.
+	LRFs will be submitted as reduced cloud
+- Keypoint detection is to be added.
 
 
 

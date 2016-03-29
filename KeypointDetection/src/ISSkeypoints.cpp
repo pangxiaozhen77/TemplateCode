@@ -64,8 +64,9 @@ main (int argc, char** argv)
   //
   double iss_salient_radius_;
   double iss_non_max_radius_;
-  double iss_gamma_21_ (0.975);
-  double iss_gamma_32_ (0.975);
+  double iss_border_radius_;
+  double iss_gamma_21_ (0.8);
+  double iss_gamma_32_ (0.8);
   double iss_min_neighbors_ (5);
   int iss_threads_ (4);
 
@@ -81,8 +82,10 @@ main (int argc, char** argv)
 
   // Compute model_resolution
 
-  iss_salient_radius_ = 6 * model_resolution;
-  iss_non_max_radius_ = 4 * model_resolution;
+  iss_salient_radius_ = 8 * model_resolution;
+  iss_non_max_radius_ = 6 * model_resolution;
+  iss_border_radius_ =  12 * model_resolution;
+
 
   //
   // Compute keypoints
@@ -91,7 +94,9 @@ main (int argc, char** argv)
 
   iss_detector.setSearchMethod (tree);
   iss_detector.setSalientRadius (iss_salient_radius_);
+  iss_detector.setBorderRadius(iss_border_radius_);
   iss_detector.setNonMaxRadius (iss_non_max_radius_);
+  iss_detector.setNormalRadius(iss_salient_radius_);
   iss_detector.setThreshold21 (iss_gamma_21_);
   iss_detector.setThreshold32 (iss_gamma_32_);
   iss_detector.setMinNeighbors (iss_min_neighbors_);

@@ -30,8 +30,10 @@ int main (int argc, char** argv)
   tic();
 
   if (argc != 4)
+  {
+    std::cout << "Wrong number of arguments!";
     return (-1);
-
+  }
   // load Point Cloud
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB> ());
 
@@ -108,15 +110,23 @@ int main (int argc, char** argv)
   feature_estimator.setRadiusSearch (support_radius);
   feature_estimator.setNumberOfPartitionBins (number_of_partition_bins);
   feature_estimator.setNumberOfRotations (number_of_rotations);
+  std::cout <<"support radius:  " <<feature_estimator.getSupportRadius()<<std::endl;
   feature_estimator.setSupportRadius (support_radius);
 
   pcl::PointCloud<pcl::Histogram <135> >::Ptr histograms (new pcl::PointCloud <pcl::Histogram <135> > ());
   pcl::PointCloud<pcl::ReferenceFrame>::Ptr LRFs (new pcl::PointCloud <pcl::ReferenceFrame> ());
   std::vector<bool>* keypoints (new std::vector<bool> ());
 
-  feature_estimator.compute (*histograms, *LRFs, *keypoints);
+  feature_estimator.compute(*histograms, *LRFs, *keypoints);
 
-  //TODO calculate the short descriptor, throwing out all non-keypoints form histograms
+  for (int i=0; i< size; i++){
+
+  std::cout << "Histogram " << histograms->points[i].histogram[1] << std::endl;
+  std::cout << "LRF size = " << LRFs->size() << std::endl;
+  std::cout << "Keypoints size = " << keypoints->size() << std::endl;
+
+  }
+  //TODO calculate the short descriptor, throwing out all non-keypoints from histograms
 
   // Save file
   //pcl::io::savePCDFileASCII  (scene_name + "_rops.pcd", *histograms);

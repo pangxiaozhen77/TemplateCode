@@ -184,7 +184,7 @@ namespace pcl
         * \param[out] output the resultant point cloud model dataset containing the estimated features
         */
       void
-      compute (PointCloudOut &output, pcl::PointCloud<pcl::ReferenceFrame> &LRFs, std::vector<bool> &keypoints);
+      compute (PointCloudOut& output, pcl::PointCloud<pcl::ReferenceFrame>& LRFs, std::vector<bool>& keypoints);
 
     protected:
       /** \brief The feature name. */

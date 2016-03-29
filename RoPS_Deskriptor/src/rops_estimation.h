@@ -115,18 +115,19 @@ namespace pcl
       void
       getTriangles (std::vector <pcl::Vertices>& triangles) const;
 
-    private:
+
 
       /** \brief Abstract feature estimation method.
         * \param[out] output the resultant features
         */
       virtual void
-      computeFeature (PointCloudOut& output, pcl::PointCloud<pcl::ReferenceFrame> &LRFs, std::vector<bool> &keypoints);
+      computeFeature (PointCloudOut& output, pcl::PointCloud<pcl::ReferenceFrame>& LRFs, std::vector<bool>& keypoints);
 
       /** \brief This method simply builds the list of triangles for every point.
         * The list of triangles for each point consists of indices of triangles it belongs to.
         * The only purpose of this method is to improve perfomance of the algorithm.
         */
+    private:
       void
       buildListOfPointsTriangles ();
 

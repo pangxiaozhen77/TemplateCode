@@ -280,6 +280,7 @@
 <pathentry kind="mac" name="__EXCEPTIONS" path="" value="1"/>
 <pathentry kind="mac" name="_GNU_SOURCE" path="" value="1"/>
 <pathentry include="/usr/include/vtk-5.8" kind="inc" path="" system="true"/>
+<pathentry include="/home/yves/git/TemplateCode/RoPS_Deskriptor/src" kind="inc" path="" system="true"/>
 <pathentry include="/usr/include/pcl-1.7" kind="inc" path="" system="true"/>
 <pathentry include="/usr/include/eigen3" kind="inc" path="" system="true"/>
 <pathentry include="/usr/include/ni" kind="inc" path="" system="true"/>
