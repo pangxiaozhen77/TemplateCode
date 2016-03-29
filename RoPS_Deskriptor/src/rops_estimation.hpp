@@ -149,6 +149,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
 
   for (unsigned int i_point = 0; i_point < number_of_points; i_point++)
   {
+    std::cout << i_point << std::endl;
     std::set <unsigned int> local_triangles;
     std::vector <int> local_points;
     getLocalSurface (input_->points[(*indices_)[i_point]], local_triangles, local_points);
@@ -156,21 +157,22 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
     Eigen::Matrix3f lrf_matrix;
     bool iskeypoint = false;
     computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);
-    std::cout << "LRF " << i_point << "computed." << std::endl;
 
     if (iskeypoint) //else LRF will not be pushed back and the point of the FeatureCloud stays as initialised
     {
-
         // Mark Point as keypoint
         keypoints[i_point] = true;
-      std::cout << "Point " << i_point << " is a keypoint." << std::endl;
+
         // push back LRF to the LRF vector
         pcl::ReferenceFrame LRF;
-
-        //LRF.rf = {lrf_matrix.block<3,1>(0,0),lrf_matrix.block<3,1>(0,1),lrf_matrix.block<3,1>(0,2)};
+        for (int d=0; d < 3; ++d)
+        {
+          LRF.x_axis[d] = lrf_matrix (0, d);
+          LRF.y_axis[d] = lrf_matrix (1, d);
+          LRF.z_axis[d] = lrf_matrix (2, d);
+        }
         LRFs.push_back(LRF);
 
-        std::cout << "LRF is calculated." << std::endl;
         PointCloudIn transformed_cloud;
         transformCloud (input_->points[(*indices_)[i_point]], lrf_matrix, local_points, transformed_cloud);
 
@@ -320,39 +322,42 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeLRF (const PointInT& point, co
   Eigen::Vector3f v1, v2, v3;
   computeEigenVectors (overall_scatter_matrix, v1, v2, v3, iskeypoint);
 
-  float h1 = 0.0f;
-  float h3 = 0.0f;
-  for (it = local_triangles.begin (), i_triangle = 0; it != local_triangles.end (); it++, i_triangle++)
+  if (iskeypoint)
   {
-    Eigen::Vector3f pt[3];
-    for (unsigned int i_vertex = 0; i_vertex < 3; i_vertex++)
+    float h1 = 0.0f;
+    float h3 = 0.0f;
+    for (it = local_triangles.begin (), i_triangle = 0; it != local_triangles.end (); it++, i_triangle++)
     {
-      const unsigned int index = triangles_[*it].vertices[i_vertex];
-      pt[i_vertex] (0) = surface_->points[index].x;
-      pt[i_vertex] (1) = surface_->points[index].y;
-      pt[i_vertex] (2) = surface_->points[index].z;
+      Eigen::Vector3f pt[3];
+      for (unsigned int i_vertex = 0; i_vertex < 3; i_vertex++)
+      {
+        const unsigned int index = triangles_[*it].vertices[i_vertex];
+        pt[i_vertex] (0) = surface_->points[index].x;
+        pt[i_vertex] (1) = surface_->points[index].y;
+        pt[i_vertex] (2) = surface_->points[index].z;
+      }
+
+      float factor1 = 0.0f;
+      float factor3 = 0.0f;
+      for (unsigned int i_pt = 0; i_pt < 3; i_pt++)
+      {
+        Eigen::Vector3f vec = pt[i_pt] - feature_point;
+        factor1 += vec.dot (v1);
+        factor3 += vec.dot (v3);
+      }
+      h1 += total_weight[i_triangle] * factor1;
+      h3 += total_weight[i_triangle] * factor3;
     }
 
-    float factor1 = 0.0f;
-    float factor3 = 0.0f;
-    for (unsigned int i_pt = 0; i_pt < 3; i_pt++)
-    {
-      Eigen::Vector3f vec = pt[i_pt] - feature_point;
-      factor1 += vec.dot (v1);
-      factor3 += vec.dot (v3);
-    }
-    h1 += total_weight[i_triangle] * factor1;
-    h3 += total_weight[i_triangle] * factor3;
+    if (h1 < 0.0f) v1 = -v1;
+    if (h3 < 0.0f) v3 = -v3;
+
+    v2 = v3.cross (v1);
+
+    lrf_matrix.row (0) = v1;
+    lrf_matrix.row (1) = v2;
+    lrf_matrix.row (2) = v3;
   }
-
-  if (h1 < 0.0f) v1 = -v1;
-  if (h3 < 0.0f) v3 = -v3;
-
-  v2 = v3.cross (v1);
-
-  lrf_matrix.row (0) = v1;
-  lrf_matrix.row (1) = v2;
-  lrf_matrix.row (2) = v3;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -399,15 +404,14 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeEigenVectors (const Eigen::Mat
  float keypoint_gamma32 = 0.9;
  float rel21 = eigen_values.real () (middle_index)/eigen_values.real () (major_index);
  float rel32 = eigen_values.real () (minor_index)/eigen_values.real () (middle_index);
- std::cout << "rel21 = " << rel21 << "   rel32 = " << rel32 << std::endl;
+
+ //std::cout << "rel21 = " << rel21 << "   rel32 = " << rel32 << std::endl;
 
   if (rel21 < keypoint_gamma21 &&
       rel32 < keypoint_gamma32)
   {
-    std::cout << "Eigen: Point is a keypoint." << std::endl;
     iskeypoint = true;
   }else{
-    std::cout << "Eigen: Point NOT is a keypoint." << std::endl;
     iskeypoint = false;
   }
   major_axis = eigen_vectors.col (major_index).real ();
