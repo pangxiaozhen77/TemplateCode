@@ -4,7 +4,7 @@ SET(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 SET(CMAKE_DEPENDS_CHECK_CXX
-  "/home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_descriptor_main.cpp" "/home/yves/git/TemplateCode/RoPS_Deskriptor/build/CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.o"
+  "/home/yves/TemplateCode/RoPS_Deskriptor/src/rops_descriptor_main.cpp" "/home/yves/TemplateCode/RoPS_Deskriptor/build/CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.o"
   )
 SET(CMAKE_CXX_COMPILER_ID "GNU")
 
@@ -26,7 +26,7 @@ SET(CMAKE_TARGET_LINKED_INFO_FILES
 # The include file search paths:
 SET(CMAKE_C_TARGET_INCLUDE_PATH
   "/usr/include/vtk-5.8"
-  "/home/yves/git/TemplateCode/RoPS_Deskriptor/src/."
+  "/home/yves/TemplateCode/RoPS_Deskriptor/src/."
   "/usr/include/pcl-1.7"
   "/usr/include/eigen3"
   "/usr/include/ni"

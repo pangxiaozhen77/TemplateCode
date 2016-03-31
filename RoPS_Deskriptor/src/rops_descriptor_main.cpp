@@ -1,3 +1,4 @@
+//#include <pcl/features/rops_estimation.h>
 #include "rops_estimation.h"
 #include <pcl/io/pcd_io.h>
 #include <iostream>
@@ -48,7 +49,7 @@ int main (int argc, char** argv)
   int height = cloud->height;
   int width = cloud->width;
   int size  = width * height;
-  std::cout << "Loaded " << size << " points." << std::endl;
+  std::cout << std::endl << "Loaded " << size << " points." << std::endl;
 
   //TODO load PKeypoint Indices, use other technique to determine keypoints
   pcl::PointIndicesPtr indices = boost::shared_ptr <pcl::PointIndices> (new pcl::PointIndices ());
@@ -116,15 +117,16 @@ int main (int argc, char** argv)
   pcl::PointCloud<pcl::ReferenceFrame>::Ptr LRFs (new pcl::PointCloud <pcl::ReferenceFrame> ());
   std::vector<bool>* keypoints (new std::vector<bool> ());
 
+  //feature_estimator.compute(*histograms);
   feature_estimator.compute(*histograms, *LRFs, *keypoints);
 
-  for (int i=0; i< size; i++){
- // std::cout << "Histogram " << histograms->points[i].histogram[1] << std::endl;
+  for (int i=0; i< 10; i++){
+  std::cout << "Histogram " << histograms->points[i].histogram[1] << std::endl;
+  std::cout << "LRF " << LRFs->points[i].rf[1] << std::endl;
   }
 
 
   std::cout << "LRF size = " << LRFs->size() << std::endl;
-  //std::cout << "Keypoints size = " << keypoints->size() << std::endl;
 
   //TODO calculate the short descriptor, throwing out all non-keypoints from histograms
 

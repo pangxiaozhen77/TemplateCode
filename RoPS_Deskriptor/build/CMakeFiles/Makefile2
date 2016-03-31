@@ -46,11 +46,14 @@ RM = /usr/bin/cmake -E remove -f
 # Escaping for special characters.
 EQUALS = =
 
+# The program to use to edit the cache.
+CMAKE_EDIT_COMMAND = /usr/bin/ccmake
+
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/yves/git/TemplateCode/RoPS_Deskriptor/src
+CMAKE_SOURCE_DIR = /home/yves/TemplateCode/RoPS_Deskriptor/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/yves/git/TemplateCode/RoPS_Deskriptor/build
+CMAKE_BINARY_DIR = /home/yves/TemplateCode/RoPS_Deskriptor/build
 
 #=============================================================================
 # Target rules for target CMakeFiles/rops_descriptor_main.dir
@@ -59,7 +62,7 @@ CMAKE_BINARY_DIR = /home/yves/git/TemplateCode/RoPS_Deskriptor/build
 CMakeFiles/rops_descriptor_main.dir/all:
 	$(MAKE) -f CMakeFiles/rops_descriptor_main.dir/build.make CMakeFiles/rops_descriptor_main.dir/depend
 	$(MAKE) -f CMakeFiles/rops_descriptor_main.dir/build.make CMakeFiles/rops_descriptor_main.dir/build
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/yves/git/TemplateCode/RoPS_Deskriptor/build/CMakeFiles  1
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/yves/TemplateCode/RoPS_Deskriptor/build/CMakeFiles  1
 	@echo "Built target rops_descriptor_main"
 .PHONY : CMakeFiles/rops_descriptor_main.dir/all
 
@@ -69,9 +72,9 @@ all: CMakeFiles/rops_descriptor_main.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/rops_descriptor_main.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/yves/git/TemplateCode/RoPS_Deskriptor/build/CMakeFiles 1
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/yves/TemplateCode/RoPS_Deskriptor/build/CMakeFiles 1
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/rops_descriptor_main.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/yves/git/TemplateCode/RoPS_Deskriptor/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/yves/TemplateCode/RoPS_Deskriptor/build/CMakeFiles 0
 .PHONY : CMakeFiles/rops_descriptor_main.dir/rule
 
 # Convenience name for target.

@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/yves/git/TemplateCode/RoPS_Deskriptor/src/feature.h
+/home/yves/TemplateCode/RoPS_Deskriptor/src/feature.h
 boost/function.hpp
 -
 boost/bind.hpp
@@ -16,15 +16,15 @@ pcl/pcl_base.h
 pcl/search/search.h
 -
 feature.hpp
-/home/yves/git/TemplateCode/RoPS_Deskriptor/src/feature.hpp
+/home/yves/TemplateCode/RoPS_Deskriptor/src/feature.hpp
 
-/home/yves/git/TemplateCode/RoPS_Deskriptor/src/feature.hpp
+/home/yves/TemplateCode/RoPS_Deskriptor/src/feature.hpp
 pcl/search/pcl_search.h
 -
 
-/home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_descriptor_main.cpp
+/home/yves/TemplateCode/RoPS_Deskriptor/src/rops_descriptor_main.cpp
 rops_estimation.h
-/home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_estimation.h
+/home/yves/TemplateCode/RoPS_Deskriptor/src/rops_estimation.h
 pcl/io/pcd_io.h
 -
 iostream
@@ -34,19 +34,23 @@ ctime
 pcl/io/ply_io.h
 -
 
-/home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_estimation.h
+/home/yves/TemplateCode/RoPS_Deskriptor/src/rops_estimation.h
 pcl/PolygonMesh.h
 -
 feature.h
-/home/yves/git/TemplateCode/RoPS_Deskriptor/src/feature.h
+/home/yves/TemplateCode/RoPS_Deskriptor/src/feature.h
 set
 -
 rops_estimation.hpp
-/home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_estimation.hpp
+/home/yves/TemplateCode/RoPS_Deskriptor/src/rops_estimation.hpp
 
-/home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_estimation.hpp
+/home/yves/TemplateCode/RoPS_Deskriptor/src/rops_estimation.hpp
 rops_estimation.h
-/home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_estimation.h
+/home/yves/TemplateCode/RoPS_Deskriptor/src/rops_estimation.h
+ctime
+-
+stack
+-
 
 /usr/include/eigen3/Eigen/Cholesky
 Core

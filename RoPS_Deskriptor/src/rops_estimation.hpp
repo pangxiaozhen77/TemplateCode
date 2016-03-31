@@ -41,6 +41,10 @@
 #define PCL_ROPS_ESTIMATION_HPP_
 
 #include "rops_estimation.h"
+#include <ctime>
+#include <stack>
+
+std::stack<clock_t> tictoc_stack2;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT>
@@ -149,14 +153,14 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
 
   for (unsigned int i_point = 0; i_point < number_of_points; i_point++)
   {
-    std::cout << i_point << std::endl;
     std::set <unsigned int> local_triangles;
     std::vector <int> local_points;
     getLocalSurface (input_->points[(*indices_)[i_point]], local_triangles, local_points);
 
     Eigen::Matrix3f lrf_matrix;
     bool iskeypoint = false;
-    computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);
+
+    computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);  // end timer
 
     if (iskeypoint) //else LRF will not be pushed back and the point of the FeatureCloud stays as initialised
     {
@@ -172,6 +176,8 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
           LRF.z_axis[d] = lrf_matrix (2, d);
         }
         LRFs.push_back(LRF);
+
+
 
         PointCloudIn transformed_cloud;
         transformCloud (input_->points[(*indices_)[i_point]], lrf_matrix, local_points, transformed_cloud);
@@ -260,6 +266,9 @@ pcl::ROPSEstimation <PointInT, PointOutT>::getLocalSurface (const PointInT& poin
 template <typename PointInT, typename PointOutT> void
 pcl::ROPSEstimation <PointInT, PointOutT>::computeLRF (const PointInT& point, const std::set <unsigned int>& local_triangles, Eigen::Matrix3f& lrf_matrix, bool& iskeypoint) const
 {
+  //Start timer
+  //tictoc_stack2.push(clock());
+
   const unsigned int number_of_triangles = static_cast <unsigned int> (local_triangles.size ());
 
   std::vector <Eigen::Matrix3f> scatter_matrices (number_of_triangles);
@@ -319,6 +328,12 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeLRF (const PointInT& point, co
     total_weight[i_triangle] = factor * denominator;
   }
 
+  //End timer
+ // std::cout << "Time elapsed for filtering: "
+      //      << ((double)(clock()-tictoc_stack2.top()))/CLOCKS_PER_SEC
+    //        << std::endl;
+  //tictoc_stack2.pop();
+
   Eigen::Vector3f v1, v2, v3;
   computeEigenVectors (overall_scatter_matrix, v1, v2, v3, iskeypoint);
 
@@ -365,6 +380,7 @@ template <typename PointInT, typename PointOutT> void
 pcl::ROPSEstimation <PointInT, PointOutT>::computeEigenVectors (const Eigen::Matrix3f& matrix,
   Eigen::Vector3f& major_axis, Eigen::Vector3f& middle_axis, Eigen::Vector3f& minor_axis, bool& iskeypoint) const
 {
+
   Eigen::EigenSolver <Eigen::Matrix3f> eigen_solver;
   eigen_solver.compute (matrix);
 

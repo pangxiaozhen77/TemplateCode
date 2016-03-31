@@ -34,11 +34,14 @@ RM = /usr/bin/cmake -E remove -f
 # Escaping for special characters.
 EQUALS = =
 
+# The program to use to edit the cache.
+CMAKE_EDIT_COMMAND = /usr/bin/ccmake
+
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/yves/git/TemplateCode/RoPS_Deskriptor/src
+CMAKE_SOURCE_DIR = /home/yves/TemplateCode/RoPS_Deskriptor/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/yves/git/TemplateCode/RoPS_Deskriptor/build
+CMAKE_BINARY_DIR = /home/yves/TemplateCode/RoPS_Deskriptor/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/rops_descriptor_main.dir/depend.make
@@ -50,18 +53,18 @@ include CMakeFiles/rops_descriptor_main.dir/progress.make
 include CMakeFiles/rops_descriptor_main.dir/flags.make
 
 CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.o: CMakeFiles/rops_descriptor_main.dir/flags.make
-CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.o: /home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_descriptor_main.cpp
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/yves/git/TemplateCode/RoPS_Deskriptor/build/CMakeFiles $(CMAKE_PROGRESS_1)
+CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.o: /home/yves/TemplateCode/RoPS_Deskriptor/src/rops_descriptor_main.cpp
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/yves/TemplateCode/RoPS_Deskriptor/build/CMakeFiles $(CMAKE_PROGRESS_1)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.o -c /home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_descriptor_main.cpp
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.o -c /home/yves/TemplateCode/RoPS_Deskriptor/src/rops_descriptor_main.cpp
 
 CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_descriptor_main.cpp > CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.i
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/yves/TemplateCode/RoPS_Deskriptor/src/rops_descriptor_main.cpp > CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.i
 
 CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/yves/git/TemplateCode/RoPS_Deskriptor/src/rops_descriptor_main.cpp -o CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.s
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/yves/TemplateCode/RoPS_Deskriptor/src/rops_descriptor_main.cpp -o CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.s
 
 CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.o.requires:
 .PHONY : CMakeFiles/rops_descriptor_main.dir/rops_descriptor_main.cpp.o.requires
@@ -198,6 +201,6 @@ CMakeFiles/rops_descriptor_main.dir/clean:
 .PHONY : CMakeFiles/rops_descriptor_main.dir/clean
 
 CMakeFiles/rops_descriptor_main.dir/depend:
-	cd /home/yves/git/TemplateCode/RoPS_Deskriptor/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/yves/git/TemplateCode/RoPS_Deskriptor/src /home/yves/git/TemplateCode/RoPS_Deskriptor/src /home/yves/git/TemplateCode/RoPS_Deskriptor/build /home/yves/git/TemplateCode/RoPS_Deskriptor/build /home/yves/git/TemplateCode/RoPS_Deskriptor/build/CMakeFiles/rops_descriptor_main.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/yves/TemplateCode/RoPS_Deskriptor/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/yves/TemplateCode/RoPS_Deskriptor/src /home/yves/TemplateCode/RoPS_Deskriptor/src /home/yves/TemplateCode/RoPS_Deskriptor/build /home/yves/TemplateCode/RoPS_Deskriptor/build /home/yves/TemplateCode/RoPS_Deskriptor/build/CMakeFiles/rops_descriptor_main.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/rops_descriptor_main.dir/depend
 
