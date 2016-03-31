@@ -46,6 +46,7 @@
 #include <pcl/features/integral_image_normal.h>
 #include <ctime>
 #include <stack>
+#include <array>
 
 std::stack<clock_t> tictoc_stack2;
 
@@ -293,10 +294,8 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature2 (PointCloudOut& outpu
   buildListOfPointsTriangles ();
 
   if(!initComputeKeypoints())
-    {
-    std::cout << "Feature computation aborted." << std::endl;
-    return;
-    }
+    {std::cout << "Feature computation aborted." << std::endl;
+    return;  }
 
   bool* borders = new bool [input_->size()];
   identifyBorderPoints(borders);
@@ -307,6 +306,8 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature2 (PointCloudOut& outpu
 
   output.points.resize (number_of_points, PointOutT ());
   keypoints.resize(indices_->size ());
+
+  std::vector <std::vector<int>, indices_->size ()> local_points_vec;
 
   for (unsigned int i_point = 0; i_point < number_of_points; i_point++)
   {
@@ -321,22 +322,31 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature2 (PointCloudOut& outpu
 
       computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);  // end timer
 
-      if (iskeypoint) //else LRF will not be pushed back and the point of the FeatureCloud stays as initialised
+      if (iskeypoint)
       {
-          // Mark Point as keypoint
-          keypoints[i_point] = true;
+        // Mark Point as keypoint
+        keypoints[i_point] = true;
 
-          // push back LRF to the LRF vector
-          pcl::ReferenceFrame LRF;
-          for (int d=0; d < 3; ++d)
-          {
-            LRF.x_axis[d] = lrf_matrix (0, d);
-            LRF.y_axis[d] = lrf_matrix (1, d);
-            LRF.z_axis[d] = lrf_matrix (2, d);
-          }
-          LRFs.push_back(LRF);
-
-
+        // push back LRF to the LRF vector
+        pcl::ReferenceFrame LRF;
+        for (int d=0; d < 3; ++d)
+        {
+          LRF.x_axis[d] = lrf_matrix (0, d);
+          LRF.y_axis[d] = lrf_matrix (1, d);
+          LRF.z_axis[d] = lrf_matrix (2, d);
+        }
+        LRFs.push_back(LRF);
+      }
+      else
+      {
+        keypoints[i_point] = false;
+      }
+    }
+  }
+  for (unsigned int i_point = 0; i_point < number_of_points; i_point++)
+  {
+      if (keypoints[i_point]) //else LRF will not be pushed back and the point of the FeatureCloud stays as initialised
+      {
 
           PointCloudIn transformed_cloud;
           transformCloud (input_->points[(*indices_)[i_point]], lrf_matrix, local_points, transformed_cloud);
@@ -385,12 +395,6 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature2 (PointCloudOut& outpu
           for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
             output.points[i_point].histogram[i_dim] = feature[i_dim] * norm;
       }
-    }
-    else
-    {
-      // Mark Point as non-keypoint and leave i_point free
-      keypoints[i_point] = false;
-    }
   }
 }
 
