@@ -38,8 +38,8 @@
  *
  */
 
-#ifndef PCL_FEATURES_IMPL_FEATURE_H_
-#define PCL_FEATURES_IMPL_FEATURE_H_
+#ifndef PCL_FEATURES2_IMPL_FEATURE2_H_
+#define PCL_FEATURES2_IMPL_FEATURE2_H_
 
 #include <pcl/search/pcl_search.h>
 
@@ -47,7 +47,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> bool
-pcl::Feature<PointInT, PointOutT>::initCompute ()
+pcl::Feature2<PointInT, PointOutT>::initCompute ()
 {
   if (!PCLBase<PointInT>::initCompute ())
   {
@@ -130,7 +130,7 @@ pcl::Feature<PointInT, PointOutT>::initCompute ()
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> bool
-pcl::Feature<PointInT, PointOutT>::deinitCompute ()
+pcl::Feature2<PointInT, PointOutT>::deinitCompute ()
 {
   // Reset the surface
   if (fake_surface_)
@@ -143,7 +143,7 @@ pcl::Feature<PointInT, PointOutT>::deinitCompute ()
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-pcl::Feature<PointInT, PointOutT>::compute (PointCloudOut& output, pcl::PointCloud<pcl::ReferenceFrame>& LRFs, std::vector<bool>& keypoints)
+pcl::Feature2<PointInT, PointOutT>::compute (PointCloudOut& output, pcl::PointCloud<pcl::ReferenceFrame>& LRFs, std::vector<bool>& keypoints)
 {
   if (!initCompute ())
   {
@@ -179,118 +179,9 @@ pcl::Feature<PointInT, PointOutT>::compute (PointCloudOut& output, pcl::PointClo
   output.is_dense = input_->is_dense;
 
   // Perform the actual feature computation
-  computeFeature (output, LRFs, keypoints);
+  computeFeature2 (output, LRFs, keypoints);
 
   deinitCompute ();
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointInT, typename PointNT, typename PointOutT> bool
-pcl::FeatureFromNormals<PointInT, PointNT, PointOutT>::initCompute ()
-{
-  if (!Feature<PointInT, PointOutT>::initCompute ())
-  {
-    PCL_ERROR ("[pcl::%s::initCompute] Init failed.\n", getClassName ().c_str ());
-    return (false);
-  }
-
-  // Check if input normals are set
-  if (!normals_)
-  {
-    PCL_ERROR ("[pcl::%s::initCompute] No input dataset containing normals was given!\n", getClassName ().c_str ());
-    Feature<PointInT, PointOutT>::deinitCompute ();
-    return (false);
-  }
-
-  // Check if the size of normals is the same as the size of the surface
-  if (normals_->points.size () != surface_->points.size ())
-  {
-    PCL_ERROR ("[pcl::%s::initCompute] ", getClassName ().c_str ());
-    PCL_ERROR ("The number of points in the input dataset (%u) differs from ", surface_->points.size ());
-    PCL_ERROR ("the number of points in the dataset containing the normals (%u)!\n", normals_->points.size ());
-    Feature<PointInT, PointOutT>::deinitCompute ();
-    return (false);
-  }
-
-  return (true);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointInT, typename PointLT, typename PointOutT> bool
-pcl::FeatureFromLabels<PointInT, PointLT, PointOutT>::initCompute ()
-{
-  if (!Feature<PointInT, PointOutT>::initCompute ())
-  {
-    PCL_ERROR ("[pcl::%s::initCompute] Init failed.\n", getClassName ().c_str ());
-    return (false);
-  }
-
-  // Check if input normals are set
-  if (!labels_)
-  {
-    PCL_ERROR ("[pcl::%s::initCompute] No input dataset containing labels was given!\n", getClassName ().c_str ());
-    Feature<PointInT, PointOutT>::deinitCompute ();
-    return (false);
-  }
-
-  // Check if the size of normals is the same as the size of the surface
-  if (labels_->points.size () != surface_->points.size ())
-  {
-    PCL_ERROR ("[pcl::%s::initCompute] The number of points in the input dataset differs from the number of points in the dataset containing the labels!\n", getClassName ().c_str ());
-    Feature<PointInT, PointOutT>::deinitCompute ();
-    return (false);
-  }
-
-  return (true);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointInT, typename PointRFT> bool
-pcl::FeatureWithLocalReferenceFrames<PointInT, PointRFT>::initLocalReferenceFrames (const size_t& indices_size,
-                                                                                    const LRFEstimationPtr& lrf_estimation)
-{
-  if (frames_never_defined_)
-    frames_.reset ();
-
-  // Check if input frames are set
-  if (!frames_)
-  {
-    if (!lrf_estimation)
-    {
-      PCL_ERROR ("[initLocalReferenceFrames] No input dataset containing reference frames was given!\n");
-      return (false);
-    } else
-    {
-      //PCL_WARN ("[initLocalReferenceFrames] No input dataset containing reference frames was given! Proceed using default\n");
-      PointCloudLRFPtr default_frames (new PointCloudLRF());
-      lrf_estimation->compute (*default_frames);
-      frames_ = default_frames;
-    }
-  }
-
-  // Check if the size of frames is the same as the size of the input cloud
-  if (frames_->points.size () != indices_size)
-  {
-    if (!lrf_estimation)
-    {
-      PCL_ERROR ("[initLocalReferenceFrames] The number of points in the input dataset differs from the number of points in the dataset containing the reference frames!\n");
-      return (false);
-    } else
-    {
-      //PCL_WARN ("[initLocalReferenceFrames] The number of points in the input dataset differs from the number of points in the dataset containing the reference frames! Proceed using default\n");
-      PointCloudLRFPtr default_frames (new PointCloudLRF());
-      lrf_estimation->compute (*default_frames);
-      frames_ = default_frames;
-    }
-  }
-
-  return (true);
 }
 
 #endif  //#ifndef PCL_FEATURES_IMPL_FEATURE_H_

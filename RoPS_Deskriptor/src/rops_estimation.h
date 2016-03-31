@@ -41,7 +41,7 @@
 #define PCL_ROPS_ESIMATION_H_
 
 #include <pcl/PolygonMesh.h>
-#include "feature.h"
+#include "feature2.h"
 #include <set>
 
 namespace pcl
@@ -52,17 +52,21 @@ namespace pcl
     * Yulan Guo, Ferdous Sohel, Mohammed Bennamoun, Min Lu and Jianwei Wan.
     */
   template <typename PointInT, typename PointOutT>
-  class ROPSEstimation : public pcl::Feature <PointInT, PointOutT>
+  class ROPSEstimation : public pcl::Feature2 <PointInT, PointOutT>
   {
     public:
 
-      using Feature <PointInT, PointOutT>::input_;
-      using Feature <PointInT, PointOutT>::indices_;
-      using Feature <PointInT, PointOutT>::surface_;
-      using Feature <PointInT, PointOutT>::tree_;
+      using Feature2 <PointInT, PointOutT>::input_;
+      using Feature2 <PointInT, PointOutT>::indices_;
+      using Feature2 <PointInT, PointOutT>::surface_;
+      using Feature2 <PointInT, PointOutT>::tree_;
 
-      typedef typename pcl::Feature <PointInT, PointOutT>::PointCloudOut PointCloudOut;
-      typedef typename pcl::Feature <PointInT, PointOutT>::PointCloudIn PointCloudIn;
+      typedef typename pcl::Feature2 <PointInT, PointOutT>::PointCloudOut PointCloudOut;
+      typedef typename pcl::Feature2 <PointInT, PointOutT>::PointCloudIn PointCloudIn;
+      typedef typename pcl::Normal NormalT;
+      typedef typename pcl::PointCloud<pcl::Normal> PointCloudN;
+      typedef typename PointCloudN::Ptr PointCloudNPtr;
+      typedef typename PointCloudN::ConstPtr PointCloudNConstPtr;
 
     public:
 
@@ -120,14 +124,78 @@ namespace pcl
       /** \brief Abstract feature estimation method.
         * \param[out] output the resultant features
         */
+
+      void
+      setSalientRadius (double salient_radius);
+
+      /** \brief Set the radius for the application of the non maxima supression algorithm.
+        * \param[in] non_max_radius the non maxima suppression radius
+        */
+      void
+      setNonMaxRadius (double non_max_radius);
+
+      /** \brief Set the radius used for the estimation of the surface normals of the input cloud. If the radius is
+  * too large, the temporal performances of the detector may degrade significantly.
+        * \param[in] normal_radius the radius used to estimate surface normals
+        */
+      void
+      setNormalRadius (double normal_radius);
+
+      /** \brief Set the radius used for the estimation of the boundary points. If the radius is too large,
+  * the temporal performances of the detector may degrade significantly.
+        * \param[in] border_radius the radius used to compute the boundary points
+        */
+      void
+      setBorderRadius (double border_radius);
+
+      /** \brief Set the upper bound on the ratio between the second and the first eigenvalue.
+        * \param[in] gamma_21 the upper bound on the ratio between the second and the first eigenvalue
+        */
+      void
+      setThreshold21 (double gamma_21);
+
+      /** \brief Set the upper bound on the ratio between the third and the second eigenvalue.
+        * \param[in] gamma_32 the upper bound on the ratio between the third and the second eigenvalue
+        */
+      void
+      setThreshold32 (double gamma_32);
+
+      /** \brief Set the minimum number of neighbors that has to be found while applying the non maxima suppression algorithm.
+        * \param[in] min_neighbors the minimum number of neighbors required
+        */
+      void
+      setMinNeighbors (int min_neighbors);
+
+      /** \brief Set the normals if pre-calculated normals are available.
+        * \param[in] normals the given cloud of normals
+        */
+      void
+      setNormals (const PointCloudNConstPtr &normals);
+
+      /** \brief Set the decision boundary (angle threshold) that marks points as boundary or regular.
+  * (default \f$\pi / 2.0\f$)
+        * \param[in] angle the angle threshold
+        */
+      inline void
+      setAngleThreshold (float angle)
+      { angle_threshold_ = angle;}
+
+      /** \brief Initialize the scheduler and set the number of threads to use.
+        * \param[in] nr_threads the number of hardware threads to use (0 sets the value back to automatic)
+        */
+      inline void
+      setNumberOfThreads (unsigned int nr_threads = 0) { threads_ = nr_threads; }
+
+    private:
+
       virtual void
-      computeFeature (PointCloudOut& output, pcl::PointCloud<pcl::ReferenceFrame>& LRFs, std::vector<bool>& keypoints);
+      computeFeature2 (PointCloudOut& output, pcl::PointCloud<pcl::ReferenceFrame>& LRFs, std::vector<bool>& keypoints);
 
       /** \brief This method simply builds the list of triangles for every point.
         * The list of triangles for each point consists of indices of triangles it belongs to.
         * The only purpose of this method is to improve perfomance of the algorithm.
         */
-    private:
+
       void
       buildListOfPointsTriangles ();
 
@@ -166,6 +234,14 @@ namespace pcl
         * \param[in] local_points point to transform
         * \param[out] transformed_cloud stores the transformed cloud
         */
+
+      bool
+      initComputeKeypoints ();
+
+      void
+      identifyBorderPoints (bool* borders);
+
+
       void
       transformCloud (const PointInT& point, const Eigen::Matrix3f& matrix, const std::vector <int>& local_points, PointCloudIn& transformed_cloud) const;
 
@@ -199,6 +275,17 @@ namespace pcl
       void
       computeCentralMoments (const Eigen::MatrixXf& matrix, std::vector <float>& moments) const;
 
+    protected:
+
+      /** \brief Compute the boundary points for the given input cloud.
+        * \param[in] input the input cloud
+        * \param[in] border_radius the radius used to compute the boundary points
+        * \param[in] angle_threshold the decision boundary that marks the points as boundary
+        * \return the vector of boolean values in which the information about the boundary points is stored
+        */
+      bool*
+      getBoundaryPoints (PointCloudIn &input, double border_radius, float angle_threshold);
+
     private:
 
       /** \brief Stores the number of partition bins that is used for distribution matrix calculation. */
@@ -221,6 +308,42 @@ namespace pcl
 
       /** \brief Stores the set of triangles for each point. Its purpose is to improve perfomance. */
       std::vector <std::vector <unsigned int> > triangles_of_the_point_;
+
+      /** \brief The radius of the spherical neighborhood used to compute the scatter matrix.*/
+      double salient_radius_;
+
+      /** \brief The non maxima suppression radius. */
+      double non_max_radius_;
+
+      /** \brief The radius used to compute the normals of the input cloud. */
+      double normal_radius_;
+
+      /** \brief The radius used to compute the boundary points of the input cloud. */
+      double border_radius_;
+
+      /** \brief The upper bound on the ratio between the second and the first eigenvalue returned by the EVD. */
+      double gamma_21_;
+
+      /** \brief The upper bound on the ratio between the third and the second eigenvalue returned by the EVD. */
+      double gamma_32_;
+
+      /** \brief Store the third eigen value associated to each point in the input cloud. */
+      double *third_eigen_value_;
+
+      /** \brief Store the information about the boundary points of the input cloud. */
+      bool *edge_points_;
+
+      /** \brief Minimum number of neighbors that has to be found while applying the non maxima suppression algorithm. */
+      int min_neighbors_;
+
+      /** \brief The cloud of normals related to the input surface. */
+      PointCloudNConstPtr normals_;
+
+      /** \brief The decision boundary (angle threshold) that marks points as boundary or regular. (default \f$\pi / 2.0\f$) */
+      float angle_threshold_;
+
+      /** \brief The number of threads that has to be used by the scheduler. */
+      unsigned int threads_;
 
     public:
 

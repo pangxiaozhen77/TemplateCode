@@ -41,6 +41,9 @@
 #define PCL_ROPS_ESTIMATION_HPP_
 
 #include "rops_estimation.h"
+#include <pcl/features/boundary.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/features/integral_image_normal.h>
 #include <ctime>
 #include <stack>
 
@@ -55,7 +58,19 @@ pcl::ROPSEstimation <PointInT, PointOutT>::ROPSEstimation () :
   sqr_support_radius_ (1.0f),
   step_ (30.0f),
   triangles_ (0),
-  triangles_of_the_point_ (0)
+  triangles_of_the_point_ (0),
+  salient_radius_ (0.0001),
+  non_max_radius_ (0.0),
+  normal_radius_ (0.0),
+  border_radius_ (0.0),
+  gamma_21_ (0.975),
+  gamma_32_ (0.975),
+  third_eigen_value_ (0),
+  edge_points_ (0),
+  min_neighbors_ (5),
+  normals_ (new pcl::PointCloud<pcl::Normal>),
+  angle_threshold_ (static_cast<float> (M_PI) / 2.0f),
+  threads_ (0)
 {
 }
 
@@ -132,11 +147,143 @@ pcl::ROPSEstimation <PointInT, PointOutT>::getTriangles (std::vector <pcl::Verti
   triangles = triangles_;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointInT, typename PointOutT> void
+pcl::ROPSEstimation <PointInT, PointOutT>::setSalientRadius (double salient_radius)
+{
+  salient_radius_ = salient_radius;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointInT, typename PointOutT> void
+pcl::ROPSEstimation <PointInT, PointOutT>::setNonMaxRadius (double non_max_radius)
+{
+  non_max_radius_ = non_max_radius;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointInT, typename PointOutT> void
+pcl::ROPSEstimation <PointInT, PointOutT>::setNormalRadius (double normal_radius)
+{
+  normal_radius_ = normal_radius;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointInT, typename PointOutT> void
+pcl::ROPSEstimation <PointInT, PointOutT>::setBorderRadius (double border_radius)
+{
+  border_radius_ = border_radius;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointInT, typename PointOutT> void
+pcl::ROPSEstimation <PointInT, PointOutT>::setThreshold21 (double gamma_21)
+{
+  gamma_21_ = gamma_21;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointInT, typename PointOutT> void
+pcl::ROPSEstimation <PointInT, PointOutT>::setThreshold32 (double gamma_32)
+{
+  gamma_32_ = gamma_32;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointInT, typename PointOutT> void
+pcl::ROPSEstimation <PointInT, PointOutT>::setMinNeighbors (int min_neighbors)
+{
+  min_neighbors_ = min_neighbors;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointInT, typename PointOutT> void
+pcl::ROPSEstimation <PointInT, PointOutT>::setNormals (const PointCloudNConstPtr &normals)
+{
+  normals_ = normals;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointInT, typename PointOutT> bool*
+pcl::ROPSEstimation <PointInT, PointOutT>::getBoundaryPoints (PointCloudIn &input, double border_radius, float angle_threshold)
+{
+  bool* edge_points = new bool [input.size ()];
+
+  Eigen::Vector4f u = Eigen::Vector4f::Zero ();
+  Eigen::Vector4f v = Eigen::Vector4f::Zero ();
+
+  pcl::BoundaryEstimation<PointInT, NormalT, pcl::Boundary> boundary_estimator;
+  boundary_estimator.setInputCloud (input_);
+  int index;
+#ifdef _OPENMP
+#pragma omp parallel for private(u, v) num_threads(threads_)
+#endif
+
+  for (index = 0; index < int (input.points.size ()); index++)
+  {
+    edge_points[index] = false;
+    PointInT current_point = input.points[index];
+
+    if (pcl::isFinite(current_point))
+    {
+      std::vector<int> nn_indices;
+      std::vector<float> nn_distances;
+      int n_neighbors;
+
+      this->searchForNeighbors (static_cast<int> (index), border_radius, nn_indices, nn_distances);
+      n_neighbors = static_cast<int> (nn_indices.size ());
+
+      if (n_neighbors >= min_neighbors_)
+      {
+  boundary_estimator.getCoordinateSystemOnPlane (normals_->points[index], u, v);
+  if (boundary_estimator.isBoundaryPoint (input, static_cast<int> (index), nn_indices, u, v, angle_threshold))
+    edge_points[index] = true;
+      }
+    }
+  }
+
+  return (edge_points);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointInT, typename PointOutT> void
+pcl::ROPSEstimation <PointInT, PointOutT>::identifyBorderPoints (bool* borders)
+{
+  if (border_radius_ > 0.0)
+      edge_points_ = getBoundaryPoints (*(input_->makeShared ()), border_radius_, angle_threshold_);
+
+    int index;
+  #ifdef _OPENMP
+    #pragma omp parallel for num_threads(threads_)
+  #endif
+    for (index = 0; index < int (input_->size ()); index++)
+    {
+      borders[index] = false;
+      PointInT current_point = input_->points[index];
+
+      if ((border_radius_ > 0.0) && (pcl::isFinite(current_point)))
+      {
+        std::vector<int> nn_indices;
+        std::vector<float> nn_distances;
+
+        this->searchForNeighbors (static_cast<int> (index), border_radius_, nn_indices, nn_distances);
+
+        for (size_t j = 0 ; j < nn_indices.size (); j++)
+        {
+          if (edge_points_[nn_indices[j]])
+          {
+            borders[index] = true;
+            break;
+          }
+        }
+      }
+    }
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output, pcl::PointCloud<pcl::ReferenceFrame>& LRFs, std::vector<bool>& keypoints)
+pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature2 (PointCloudOut& output, pcl::PointCloud<pcl::ReferenceFrame>& LRFs, std::vector<bool>& keypoints)
 {
-  std::cout << "Computing Feature" <<std::endl;
   if (triangles_.size () == 0)
   {
     output.points.clear ();
@@ -145,87 +292,101 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
 
   buildListOfPointsTriangles ();
 
+  if(!initComputeKeypoints())
+    {
+    std::cout << "Feature computation aborted." << std::endl;
+    return;
+    }
+
+  bool* borders = new bool [input_->size()];
+  identifyBorderPoints(borders);
+
   //feature size = number_of_rotations * number_of_axis_to_rotate_around * number_of_projections * number_of_central_moments
   unsigned int feature_size = number_of_rotations_ * 3 * 3 * 5;
   unsigned int number_of_points = static_cast <unsigned int> (indices_->size ());
+
   output.points.resize (number_of_points, PointOutT ());
   keypoints.resize(indices_->size ());
 
   for (unsigned int i_point = 0; i_point < number_of_points; i_point++)
   {
-    std::set <unsigned int> local_triangles;
-    std::vector <int> local_points;
-    getLocalSurface (input_->points[(*indices_)[i_point]], local_triangles, local_points);
-
-    Eigen::Matrix3f lrf_matrix;
-    bool iskeypoint = false;
-
-    computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);  // end timer
-
-    if (iskeypoint) //else LRF will not be pushed back and the point of the FeatureCloud stays as initialised
+    if (!borders[i_point] && pcl::isFinite(input_->points[i_point]) ) //no calculation if boundary point or NaN
     {
-        // Mark Point as keypoint
-        keypoints[i_point] = true;
+      std::set <unsigned int> local_triangles;
+      std::vector <int> local_points;
+      getLocalSurface (input_->points[(*indices_)[i_point]], local_triangles, local_points);
 
-        // push back LRF to the LRF vector
-        pcl::ReferenceFrame LRF;
-        for (int d=0; d < 3; ++d)
-        {
-          LRF.x_axis[d] = lrf_matrix (0, d);
-          LRF.y_axis[d] = lrf_matrix (1, d);
-          LRF.z_axis[d] = lrf_matrix (2, d);
-        }
-        LRFs.push_back(LRF);
+      Eigen::Matrix3f lrf_matrix;
+      bool iskeypoint = false;
 
+      computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);  // end timer
 
+      if (iskeypoint) //else LRF will not be pushed back and the point of the FeatureCloud stays as initialised
+      {
+          // Mark Point as keypoint
+          keypoints[i_point] = true;
 
-        PointCloudIn transformed_cloud;
-        transformCloud (input_->points[(*indices_)[i_point]], lrf_matrix, local_points, transformed_cloud);
-
-        PointInT axis[3];
-        axis[0].x = 1.0f; axis[0].y = 0.0f; axis[0].z = 0.0f;
-        axis[1].x = 0.0f; axis[1].y = 1.0f; axis[1].z = 0.0f;
-        axis[2].x = 0.0f; axis[2].y = 0.0f; axis[2].z = 1.0f;
-        std::vector <float> feature;
-        for (unsigned int i_axis = 0; i_axis < 3; i_axis++)
-        {
-          float theta = step_;
-          do
+          // push back LRF to the LRF vector
+          pcl::ReferenceFrame LRF;
+          for (int d=0; d < 3; ++d)
           {
-            //rotate local surface and get bounding box
-            PointCloudIn rotated_cloud;
-            Eigen::Vector3f min, max;
-            rotateCloud (axis[i_axis], theta, transformed_cloud, rotated_cloud, min, max);
+            LRF.x_axis[d] = lrf_matrix (0, d);
+            LRF.y_axis[d] = lrf_matrix (1, d);
+            LRF.z_axis[d] = lrf_matrix (2, d);
+          }
+          LRFs.push_back(LRF);
 
-            //for each projection (XY, XZ and YZ) compute distribution matrix and central moments
-            for (unsigned int i_proj = 0; i_proj < 3; i_proj++)
+
+
+          PointCloudIn transformed_cloud;
+          transformCloud (input_->points[(*indices_)[i_point]], lrf_matrix, local_points, transformed_cloud);
+
+          PointInT axis[3];
+          axis[0].x = 1.0f; axis[0].y = 0.0f; axis[0].z = 0.0f;
+          axis[1].x = 0.0f; axis[1].y = 1.0f; axis[1].z = 0.0f;
+          axis[2].x = 0.0f; axis[2].y = 0.0f; axis[2].z = 1.0f;
+          std::vector <float> feature;
+          for (unsigned int i_axis = 0; i_axis < 3; i_axis++)
+          {
+            float theta = step_;
+            do
             {
-              Eigen::MatrixXf distribution_matrix;
-              distribution_matrix.resize (number_of_bins_, number_of_bins_);
-              getDistributionMatrix (i_proj, min, max, rotated_cloud, distribution_matrix);
+              //rotate local surface and get bounding box
+              PointCloudIn rotated_cloud;
+              Eigen::Vector3f min, max;
+              rotateCloud (axis[i_axis], theta, transformed_cloud, rotated_cloud, min, max);
 
-//TODO make an other function to calculate c-RoPS
-              std::vector <float> moments;
-              computeCentralMoments (distribution_matrix, moments);
+              //for each projection (XY, XZ and YZ) compute distribution matrix and central moments
+              for (unsigned int i_proj = 0; i_proj < 3; i_proj++)
+              {
+                Eigen::MatrixXf distribution_matrix;
+                distribution_matrix.resize (number_of_bins_, number_of_bins_);
+                getDistributionMatrix (i_proj, min, max, rotated_cloud, distribution_matrix);
 
-              feature.insert (feature.end (), moments.begin (), moments.end ());
-            }
+  //TODO make an other function to calculate c-RoPS
+                std::vector <float> moments;
+                computeCentralMoments (distribution_matrix, moments);
 
-            theta += step_;
-          } while (theta < 90.0f);
-        }
+                feature.insert (feature.end (), moments.begin (), moments.end ());
+              }
 
-        float norm = 0.0f;
-        for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
-          norm += feature[i_dim];
-        if (abs (norm) < std::numeric_limits <float>::epsilon ())
-          norm = 1.0f / norm;
-        else
-          norm = 1.0f;
+              theta += step_;
+            } while (theta < 90.0f);
+          }
 
-        for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
-          output.points[i_point].histogram[i_dim] = feature[i_dim] * norm;
-    }else
+          float norm = 0.0f;
+          for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
+            norm += feature[i_dim];
+          if (abs (norm) < std::numeric_limits <float>::epsilon ())
+            norm = 1.0f / norm;
+          else
+            norm = 1.0f;
+
+          for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
+            output.points[i_point].histogram[i_dim] = feature[i_dim] * norm;
+      }
+    }
+    else
     {
       // Mark Point as non-keypoint and leave i_point free
       keypoints[i_point] = false;
@@ -434,6 +595,88 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeEigenVectors (const Eigen::Mat
   middle_axis = eigen_vectors.col (middle_index).real ();
   minor_axis = eigen_vectors.col (minor_index).real ();
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointInT, typename PointOutT> bool
+pcl::ROPSEstimation <PointInT, PointOutT>::initComputeKeypoints ()
+{
+if (salient_radius_ <= 0)
+  {
+    PCL_ERROR ("[pcl::ROPSEstimation::initComputeKeypoints] : the salient radius (%f) must be strict positive!\n", salient_radius_);
+    return (false);
+  }
+  if (non_max_radius_ <= 0)
+  {
+    PCL_ERROR ("[pcl::ROPSEstimation::initComputeKeypoints] : the non maxima radius (%f) must be strict positive!\n", non_max_radius_);
+    return (false);
+  }
+  if (gamma_21_ <= 0)
+  {
+    PCL_ERROR ("[pcl::ROPSEstimation::initComputeKeypoints] : the threshold on the ratio between the 2nd and the 1rst eigenvalue (%f) must be strict positive!\n", gamma_21_);
+    return (false);
+  }
+  if (gamma_32_ <= 0)
+  {
+    PCL_ERROR ("[pcl::ROPSEstimation::initComputeKeypoints] : the threshold on the ratio between the 3rd and the 2nd eigenvalue (%f) must be strict positive!\n", gamma_32_);
+    return (false);
+  }
+  if (min_neighbors_ <= 0)
+  {
+    PCL_ERROR ("[pcl::ROPSEstimation::initComputeKeypoints] : the minimum number of neighbors (%f) must be strict positive!\n", min_neighbors_);
+    return (false);
+  }
+
+  if (third_eigen_value_)
+    delete[] third_eigen_value_;
+
+  third_eigen_value_ = new double[input_->size ()];
+  memset(third_eigen_value_, 0, sizeof(double) * input_->size ());
+
+  if (edge_points_)
+    delete[] edge_points_;
+
+  if (border_radius_ > 0.0)
+  {
+    if (normals_->empty ())
+    {
+      if (normal_radius_ <= 0.)
+      {
+        PCL_ERROR ("[pcl::ROPSEstimation::initComputeKeypoints] : the radius used to estimate surface normals (%f) must be positive!\n", normal_radius_);
+        return (false);
+      }
+
+      PointCloudNPtr normal_ptr (new PointCloudN ());
+      if (input_->height == 1 )
+      {
+        pcl::NormalEstimation<PointInT, NormalT> normal_estimation;
+        normal_estimation.setInputCloud (surface_);
+        normal_estimation.setRadiusSearch (normal_radius_);
+        normal_estimation.compute (*normal_ptr);
+      }
+      else
+      {
+        pcl::IntegralImageNormalEstimation<PointInT, NormalT> normal_estimation;
+        normal_estimation.setNormalEstimationMethod (pcl::IntegralImageNormalEstimation<PointInT, NormalT>::SIMPLE_3D_GRADIENT);
+        normal_estimation.setInputCloud (surface_);
+        normal_estimation.setNormalSmoothingSize (5.0);
+        normal_estimation.compute (*normal_ptr);
+      }
+      normals_ = normal_ptr;
+    }
+    if (normals_->size () != surface_->size ())
+    {
+      PCL_ERROR ("[pcl::ROPSEstimation::initComputeKeypoints] normals given, but the number of normals does not match the number of input points!\n");
+      return (false);
+    }
+  }
+  else if (border_radius_ < 0.0)
+  {
+    PCL_ERROR ("[pcl::ROPSEstimation::initComputeKeypoints] : the border radius used to estimate boundary points (%f) must be positive!\n", border_radius_);
+    return (false);
+  }
+
+  return (true);
+  }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
