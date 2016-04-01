@@ -99,7 +99,7 @@ main (int argc, char** argv)
   toc();
 
   // Save file
-  pcl::io::savePLYFile (scene + ".ply", triangles);
+  pcl::io::savePLYFile (scene + "_mesh.ply", triangles);
   std::cout << "Mesh is saved" << std::endl;
 
 

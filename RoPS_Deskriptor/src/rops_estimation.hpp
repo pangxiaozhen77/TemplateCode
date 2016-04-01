@@ -136,7 +136,6 @@ pcl::ROPSEstimation <PointInT, PointOutT>::getTriangles (std::vector <pcl::Verti
 template <typename PointInT, typename PointOutT> void
 pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output, pcl::PointCloud<pcl::ReferenceFrame>& LRFs, std::vector<bool>& keypoints)
 {
-  std::cout << "Computing Feature" <<std::endl;
   if (triangles_.size () == 0)
   {
     output.points.clear ();
@@ -144,6 +143,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
   }
 
   buildListOfPointsTriangles ();
+
 
   //feature size = number_of_rotations * number_of_axis_to_rotate_around * number_of_projections * number_of_central_moments
   unsigned int feature_size = number_of_rotations_ * 3 * 3 * 5;
@@ -156,12 +156,10 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
     std::set <unsigned int> local_triangles;
     std::vector <int> local_points;
     getLocalSurface (input_->points[(*indices_)[i_point]], local_triangles, local_points);
-
     Eigen::Matrix3f lrf_matrix;
     bool iskeypoint = false;
 
     computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);  // end timer
-
     if (iskeypoint) //else LRF will not be pushed back and the point of the FeatureCloud stays as initialised
     {
         // Mark Point as keypoint
@@ -177,11 +175,8 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
         }
         LRFs.push_back(LRF);
 
-
-
         PointCloudIn transformed_cloud;
         transformCloud (input_->points[(*indices_)[i_point]], lrf_matrix, local_points, transformed_cloud);
-
         PointInT axis[3];
         axis[0].x = 1.0f; axis[0].y = 0.0f; axis[0].z = 0.0f;
         axis[1].x = 0.0f; axis[1].y = 1.0f; axis[1].z = 0.0f;
@@ -196,14 +191,12 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
             PointCloudIn rotated_cloud;
             Eigen::Vector3f min, max;
             rotateCloud (axis[i_axis], theta, transformed_cloud, rotated_cloud, min, max);
-
             //for each projection (XY, XZ and YZ) compute distribution matrix and central moments
             for (unsigned int i_proj = 0; i_proj < 3; i_proj++)
             {
               Eigen::MatrixXf distribution_matrix;
               distribution_matrix.resize (number_of_bins_, number_of_bins_);
               getDistributionMatrix (i_proj, min, max, rotated_cloud, distribution_matrix);
-
 //TODO make an other function to calculate c-RoPS
               std::vector <float> moments;
               computeCentralMoments (distribution_matrix, moments);
@@ -214,7 +207,6 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
             theta += step_;
           } while (theta < 90.0f);
         }
-
         float norm = 0.0f;
         for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
           norm += feature[i_dim];
@@ -238,9 +230,7 @@ template <typename PointInT, typename PointOutT> void
 pcl::ROPSEstimation <PointInT, PointOutT>::buildListOfPointsTriangles ()
 {
   triangles_of_the_point_.clear ();
-
   const unsigned int number_of_triangles = static_cast <unsigned int> (triangles_.size ());
-
   std::vector <unsigned int> dummy;
   dummy.reserve (100);
   triangles_of_the_point_.resize (surface_->points. size (), dummy);
@@ -415,21 +405,8 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeEigenVectors (const Eigen::Mat
     middle_index = temp;
   }
 
-  //Keypoint selection according to Yu Zhong, "Intrinsic Shape Signatures:A Shape Descriptor for 3D Object Recognition"
- float keypoint_gamma21 = 0.9;
- float keypoint_gamma32 = 0.9;
- float rel21 = eigen_values.real () (middle_index)/eigen_values.real () (major_index);
- float rel32 = eigen_values.real () (minor_index)/eigen_values.real () (middle_index);
-
- //std::cout << "rel21 = " << rel21 << "   rel32 = " << rel32 << std::endl;
-
-  if (rel21 < keypoint_gamma21 &&
-      rel32 < keypoint_gamma32)
-  {
-    iskeypoint = true;
-  }else{
-    iskeypoint = false;
-  }
+  //Keypoint selection could be implemented here.
+  iskeypoint = true;
   major_axis = eigen_vectors.col (major_index).real ();
   middle_axis = eigen_vectors.col (middle_index).real ();
   minor_axis = eigen_vectors.col (minor_index).real ();

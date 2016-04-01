@@ -7,6 +7,7 @@
 
 std::stack<clock_t> tictoc_stack;
 
+
 void tic()
 {
   tictoc_stack.push(clock());
@@ -20,59 +21,56 @@ void toc()
   tictoc_stack.pop();
 }
 
+// Register the Histogram Type of fixed size. (for file saving only)
+POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::Histogram<135>,(float[135], histogram, histogram));
 
 int main (int argc, char** argv)
 {
-
-  std::string scene_name  = argv[1];
-  std::cout << scene_name;
-
-  // Start timer
-  tic();
-
-  if (argc != 4)
+  // Check arguments
+  if (argc != 3)
   {
     std::cout << "Wrong number of arguments!";
     return (-1);
   }
+
   // load Point Cloud
+  std::string scene_name  = argv[1];
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB> ());
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr keypoint_cloud (new pcl::PointCloud<pcl::PointXYZRGB> ());
 
   if (pcl::io::loadPCDFile<pcl::PointXYZRGB> ((scene_name + ".pcd"), *cloud) == -1)
     {
-      PCL_ERROR ("Couldn't read input file base \n");
+      PCL_ERROR ("Couldn't read input file scene \n");
+      return (-1);
+    }
+  if (pcl::io::loadPCDFile<pcl::PointXYZRGB> ((scene_name + "_Keypoints.pcd"), *keypoint_cloud) == -1)
+    {
+      PCL_ERROR ("Couldn't read input file keypoints \n");
       return (-1);
     }
 
-  //pcl:: PointXYZRGB point = cloud->operator ()(1,2);
-
+  // Get cloud sizes
   int height = cloud->height;
   int width = cloud->width;
   int size  = width * height;
   std::cout << std::endl << "Loaded " << size << " points." << std::endl;
+  int heightk = keypoint_cloud->height;
+  int widthk = keypoint_cloud->width;
+  int sizek  = widthk * heightk;
+  std::cout << "Loaded " << sizek << " keypoints." << std::endl;
 
-  //TODO load PKeypoint Indices, use other technique to determine keypoints
+  // Start timer
+  tic();
+
+  // defining indices
   pcl::PointIndicesPtr indices = boost::shared_ptr <pcl::PointIndices> (new pcl::PointIndices ());
-//  std::ifstream indices_file;
-//  indices_file.open (argv[2], std::ifstream::in);
-//  for (std::string line; std::getline (indices_file, line);)
-//  {
-//    std::istringstream in (line);
-//    unsigne  std::cout << argv[3] << std::endl;d int index = 0;
-//    in >> index;
-//    indices->indices.push_back (index - 1);
-//  }
-//  indices_file.close ();
-  for (int k = 0; k < size; k++)
-  {
+  for (int k = 0; k < sizek; k++)
     indices->indices.push_back (k);
-  }
-  std::cout << "Using " << indices->indices.size() << " indices." << std::endl;
 
   // load vertices
   std::vector <pcl::Vertices> triangles;
   std::ifstream triangles_file;
-  triangles_file.open (argv[3], std::ifstream::in);
+  triangles_file.open (argv[2], std::ifstream::in);
 
   for (std::string line; std::getline (triangles_file, line);)
     {
@@ -80,66 +78,52 @@ int main (int argc, char** argv)
       std::istringstream in (line);
       unsigned int vertex = 0;
       in >> vertex;
-      // get vertex indices of Triangles
       if (vertex == 3)
       {
         in >> vertex;
-        triangle.vertices.push_back (vertex - 1);
+        triangle.vertices.push_back (vertex);
         in >> vertex;
-        triangle.vertices.push_back (vertex - 1);
+        triangle.vertices.push_back (vertex);
         in >> vertex;
-        triangle.vertices.push_back (vertex - 1);
-
+        triangle.vertices.push_back (vertex);
         triangles.push_back (triangle);
       }
     }
 
+  // Parameters for RoPS-Feature. Histogram initialization and registration must be adjusted to changing sizes!!
   float support_radius = 0.0285f;
   unsigned int number_of_partition_bins = 5;
   unsigned int number_of_rotations = 3;
 
+  // RoPS Feature Estimation
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr search_method (new pcl::search::KdTree<pcl::PointXYZRGB>);
-  search_method->setInputCloud (cloud);
-
+  pcl::PointCloud<pcl::Histogram <135> >::Ptr histograms (new pcl::PointCloud <pcl::Histogram <135> > ());
+  pcl::PointCloud<pcl::ReferenceFrame>::Ptr LRFs (new pcl::PointCloud <pcl::ReferenceFrame> ());
+  std::vector<bool>* keypoints (new std::vector<bool> ());
   pcl::ROPSEstimation <pcl::PointXYZRGB, pcl::Histogram <135> > feature_estimator;
 
+  search_method->setInputCloud (cloud);
   feature_estimator.setSearchMethod (search_method);
   feature_estimator.setSearchSurface (cloud);
-  feature_estimator.setInputCloud (cloud);
+  feature_estimator.setInputCloud (keypoint_cloud);
   feature_estimator.setIndices (indices);
   feature_estimator.setTriangles (triangles);
   feature_estimator.setRadiusSearch (support_radius);
   feature_estimator.setNumberOfPartitionBins (number_of_partition_bins);
   feature_estimator.setNumberOfRotations (number_of_rotations);
   feature_estimator.setSupportRadius (support_radius);
-
-  pcl::PointCloud<pcl::Histogram <135> >::Ptr histograms (new pcl::PointCloud <pcl::Histogram <135> > ());
-  pcl::PointCloud<pcl::ReferenceFrame>::Ptr LRFs (new pcl::PointCloud <pcl::ReferenceFrame> ());
-  std::vector<bool>* keypoints (new std::vector<bool> ());
-
-  //feature_estimator.compute(*histograms);
   feature_estimator.compute(*histograms, *LRFs, *keypoints);
-
-  for (int i=0; i< 10; i++){
-  std::cout << "Histogram " << histograms->points[i].histogram[1] << std::endl;
-  std::cout << "LRF " << LRFs->points[i].rf[1] << std::endl;
-  }
-
-
-  std::cout << "LRF size = " << LRFs->size() << std::endl;
-
-  //TODO calculate the short descriptor, throwing out all non-keypoints from histograms
-
-  // Save file
-  //pcl::io::savePCDFileASCII  (scene_name + "_rops.pcd", *histograms);
-  //std::cout << "Deskriptor is saved" << std::endl;
-
-
-  //TODO Implement RGB feature_estimator using XYZ for LRF and local surface but RGB for descriptor
-
-  //TODO Save Histogram and LRF
 
   // End Timer
   toc();
+
+  //TODO Implement RGB feature_estimator using XYZ for LRF and local surface but RGB for descriptor
+
+  // Save file
+  pcl::io::savePCDFile  (scene_name + "_RoPSHistograms.pcd", *histograms);
+  pcl::io::savePCDFile  (scene_name + "_LRFs.pcd", *LRFs);
+
+
+
   return (0);
 }
