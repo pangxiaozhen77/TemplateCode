@@ -79,6 +79,7 @@ main (int argc, char** argv)
   // Fill in the model cloud
 
   double model_resolution= computeCloudResolution(model);
+  std::cout << "Resolution: " << model_resolution << std::endl;
 
   // Compute model_resolution
 

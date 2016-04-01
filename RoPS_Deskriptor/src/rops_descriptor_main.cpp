@@ -15,7 +15,7 @@ void tic()
 
 void toc()
 {
-  std::cout << "Time elapsed for filtering: "
+  std::cout << "Time elapsed for RoPS-Estimation: "
             << ((double)(clock()-tictoc_stack.top()))/CLOCKS_PER_SEC
             << std::endl;
   tictoc_stack.pop();
@@ -53,14 +53,13 @@ int main (int argc, char** argv)
   int height = cloud->height;
   int width = cloud->width;
   int size  = width * height;
-  std::cout << std::endl << "Loaded " << size << " points." << std::endl;
+  std::cout << std::endl << "Loaded " << size << " scene points." << std::endl;
   int heightk = keypoint_cloud->height;
   int widthk = keypoint_cloud->width;
   int sizek  = widthk * heightk;
   std::cout << "Loaded " << sizek << " keypoints." << std::endl;
 
-  // Start timer
-  tic();
+
 
   // defining indices
   pcl::PointIndicesPtr indices = boost::shared_ptr <pcl::PointIndices> (new pcl::PointIndices ());
@@ -90,11 +89,21 @@ int main (int argc, char** argv)
       }
     }
 
-  // Parameters for RoPS-Feature. Histogram initialization and registration must be adjusted to changing sizes!!
-  float support_radius = 0.0285f;
+  // Parameters for RoPS-Feature.
+  float relative_radius = 25;
+  bool crops = true;
+  float mesh_resolution = 0.00176735;
+
+  //Dont Touch!! Parameters for RoPS. Histogram initialization and registration must be adjusted to changing sizes!!
+  float support_radius = relative_radius * mesh_resolution;
   unsigned int number_of_partition_bins = 5;
   unsigned int number_of_rotations = 3;
-  bool crops = true;
+
+  std::cout << "Calculating c-RoPS features: " << crops << std::endl;
+  std::cout << "support_radius = " << support_radius << std::endl;
+
+  // Start timer
+  tic();
 
   // RoPS Feature Estimation
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr search_method (new pcl::search::KdTree<pcl::PointXYZRGB>);
@@ -119,16 +128,11 @@ int main (int argc, char** argv)
   // End Timer
   toc();
 
-std::cout << "Histogram size " << histograms->size() << std::endl;
-std::cout << "LRFS size " << LRFs->size() << std::endl;
-
   // Save file
   pcl::io::savePCDFile  (scene_name + "_RoPSHistograms.pcd", *histograms);
   pcl::io::savePCDFile  (scene_name + "_LRFs.pcd", *LRFs);
   pcl::io::savePLYFile  (scene_name + "_RoPSHistograms.ply", *histograms);
   pcl::io::savePLYFile  (scene_name + "_LRFs.ply", *LRFs);
-
-
 
   return (0);
 }
