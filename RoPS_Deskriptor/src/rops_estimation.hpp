@@ -194,6 +194,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
     bool iskeypoint = false;
 
     computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);  // end timer
+
     if (iskeypoint) //else LRF will n3D Object Recognition based on Correspondence Groupingot be pushed back and the point of the FeatureCloud stays as initialised
     {
         // Mark Point as keypoint
@@ -216,15 +217,39 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
         }else{
           LRFs[i_point]=LRF;
         }
-        // Calculate the s-RoPS feature
+
+        // Calculate transformed_cloud
         PointCloudIn transformed_cloud;
+
         transformCloud (input_->points[(*indices_)[i_point]], lrf_matrix, local_points, transformed_cloud);
+
         PointInT axis[3];
         axis[0].x = 1.0f; axis[0].y = 0.0f; axis[0].z = 0.0f;
         axis[1].x = 0.0f; axis[1].y = 1.0f; axis[1].z = 0.0f;
         axis[2].x = 0.0f; axis[2].y = 0.0f; axis[2].z = 1.0f;
         std::vector <float> feature;
         std::vector <float> color_feature;
+
+        // construct color surface
+        PointCloudIn color_cloud;
+        color_cloud.header = transformed_cloud.header;
+        color_cloud.width = local_points.size();
+        color_cloud.height = 1;
+        color_cloud.points.resize (local_points.size(), PointInT ());
+
+        for (int i_loc_point = 0; i_loc_point < local_points.size() ; i_loc_point++)
+        {
+          PointInT new_point;
+          new_point.x = (float)transformed_cloud.points[i_loc_point].r;
+          new_point.y = (float)transformed_cloud.points[i_loc_point].g;
+          new_point.z = (float)transformed_cloud.points[i_loc_point].b;
+          new_point.r = (float)0.0f;
+          new_point.g = (float)0.0f;
+          new_point.b = (float)0.0f;
+
+          color_cloud.points[i_loc_point] = new_point;
+        }
+
         for (unsigned int i_axis = 0; i_axis < 3; i_axis++)
         {
           float theta = step_;
@@ -249,24 +274,6 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
             if (crops_)
             {
                 // C-RoPS
-                // construct color surface
-                PointCloudIn color_cloud;
-                color_cloud.header = transformed_cloud.header;
-                color_cloud.width = local_points.size();
-                color_cloud.height = 1;
-                color_cloud.points.resize (local_points.size(), PointInT ());
-
-                for (int i_loc_point = 0; i_loc_point < local_points.size() ; i_loc_point++)
-                {
-                  PointInT new_point;
-                  new_point.x = (float)transformed_cloud.points[i_loc_point].r;
-                  new_point.y = (float)transformed_cloud.points[i_loc_point].g;
-                  new_point.z = (float)transformed_cloud.points[i_loc_point].b;
-                  new_point.r = (float)0.0f;
-                  new_point.g = (float)0.0f;
-                  new_point.b = (float)0.0f;
-                  color_cloud.points[i_loc_point] = new_point;
-                }
                 //rotate local cloud surface
                 PointCloudIn rotated_color_cloud;
                 Eigen::Vector3f cmin, cmax;
@@ -533,9 +540,10 @@ pcl::ROPSEstimation <PointInT, PointOutT>::transformCloud (const PointInT& point
     new_point.x = transformed_point (0);
     new_point.y = transformed_point (1);
     new_point.z = transformed_point (2);
-    new_point.r = point.r;
-    new_point.g = point.g;
-    new_point.b = point.b;
+    new_point.r = surface_->points[local_points[i]].r;
+    new_point.g = surface_->points[local_points[i]].g;
+    new_point.b = surface_->points[local_points[i]].b;
+
     transformed_cloud.points[i] = new_point;
   }
 }
