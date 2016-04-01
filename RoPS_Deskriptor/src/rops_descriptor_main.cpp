@@ -94,6 +94,7 @@ int main (int argc, char** argv)
   float support_radius = 0.0285f;
   unsigned int number_of_partition_bins = 5;
   unsigned int number_of_rotations = 3;
+  bool crops = true;
 
   // RoPS Feature Estimation
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr search_method (new pcl::search::KdTree<pcl::PointXYZRGB>);
@@ -112,16 +113,20 @@ int main (int argc, char** argv)
   feature_estimator.setNumberOfPartitionBins (number_of_partition_bins);
   feature_estimator.setNumberOfRotations (number_of_rotations);
   feature_estimator.setSupportRadius (support_radius);
+  feature_estimator.setCrops (crops);
   feature_estimator.compute(*histograms, *LRFs, *keypoints);
 
   // End Timer
   toc();
 
-  //TODO Implement RGB feature_estimator using XYZ for LRF and local surface but RGB for descriptor
+std::cout << "Histogram size " << histograms->size() << std::endl;
+std::cout << "LRFS size " << LRFs->size() << std::endl;
 
   // Save file
   pcl::io::savePCDFile  (scene_name + "_RoPSHistograms.pcd", *histograms);
   pcl::io::savePCDFile  (scene_name + "_LRFs.pcd", *LRFs);
+  pcl::io::savePLYFile  (scene_name + "_RoPSHistograms.ply", *histograms);
+  pcl::io::savePLYFile  (scene_name + "_LRFs.ply", *LRFs);
 
 
 

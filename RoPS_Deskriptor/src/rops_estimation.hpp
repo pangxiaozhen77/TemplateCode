@@ -55,7 +55,8 @@ pcl::ROPSEstimation <PointInT, PointOutT>::ROPSEstimation () :
   sqr_support_radius_ (1.0f),
   step_ (30.0f),
   triangles_ (0),
-  triangles_of_the_point_ (0)
+  triangles_of_the_point_ (0),
+  crops_ (false)
 {
 }
 
@@ -134,6 +135,20 @@ pcl::ROPSEstimation <PointInT, PointOutT>::getTriangles (std::vector <pcl::Verti
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
+pcl::ROPSEstimation <PointInT, PointOutT>::setCrops(bool& crops)
+{
+  crops_ = crops;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointInT, typename PointOutT> void
+pcl::ROPSEstimation <PointInT, PointOutT>::getCrops (bool& crops) const
+{
+  crops = crops_;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointInT, typename PointOutT> void
 pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output, pcl::PointCloud<pcl::ReferenceFrame>& LRFs, std::vector<bool>& keypoints)
 {
   if (triangles_.size () == 0)
@@ -148,8 +163,27 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
   //feature size = number_of_rotations * number_of_axis_to_rotate_around * number_of_projections * number_of_central_moments
   unsigned int feature_size = number_of_rotations_ * 3 * 3 * 5;
   unsigned int number_of_points = static_cast <unsigned int> (indices_->size ());
-  output.points.resize (number_of_points, PointOutT ());
   keypoints.resize(indices_->size ());
+  if (crops_)
+  {
+    output.points.resize (2*number_of_points, PointOutT ());
+    output.width = 2*number_of_points;
+    output.height = 1;
+
+    LRFs.points.resize (2*number_of_points, pcl::ReferenceFrame());
+    LRFs.width = 2*number_of_points;
+    LRFs.height = 1;
+
+  }else{
+    output.points.resize (number_of_points, PointOutT ());
+    output.width = number_of_points;
+    output.height = 1;
+
+    LRFs.points.resize (number_of_points, pcl::ReferenceFrame());
+    LRFs.width = number_of_points;
+    LRFs.height = 1;
+
+  }
 
   for (unsigned int i_point = 0; i_point < number_of_points; i_point++)
   {
@@ -160,7 +194,7 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
     bool iskeypoint = false;
 
     computeLRF (input_->points[(*indices_)[i_point]], local_triangles, lrf_matrix, iskeypoint);  // end timer
-    if (iskeypoint) //else LRF will not be pushed back and the point of the FeatureCloud stays as initialised
+    if (iskeypoint) //else LRF will n3D Object Recognition based on Correspondence Groupingot be pushed back and the point of the FeatureCloud stays as initialised
     {
         // Mark Point as keypoint
         keypoints[i_point] = true;
@@ -173,8 +207,16 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
           LRF.y_axis[d] = lrf_matrix (1, d);
           LRF.z_axis[d] = lrf_matrix (2, d);
         }
-        LRFs.push_back(LRF);
 
+        // Write the Local Reference Frame to LRFs
+        if (crops_)
+        {
+          LRFs[2*i_point] = LRF;
+          LRFs[2*i_point+1] = LRF;
+        }else{
+          LRFs[i_point]=LRF;
+        }
+        // Calculate the s-RoPS feature
         PointCloudIn transformed_cloud;
         transformCloud (input_->points[(*indices_)[i_point]], lrf_matrix, local_points, transformed_cloud);
         PointInT axis[3];
@@ -182,11 +224,13 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
         axis[1].x = 0.0f; axis[1].y = 1.0f; axis[1].z = 0.0f;
         axis[2].x = 0.0f; axis[2].y = 0.0f; axis[2].z = 1.0f;
         std::vector <float> feature;
+        std::vector <float> color_feature;
         for (unsigned int i_axis = 0; i_axis < 3; i_axis++)
         {
           float theta = step_;
           do
           {
+            // S-RoPS
             //rotate local surface and get bounding box
             PointCloudIn rotated_cloud;
             Eigen::Vector3f min, max;
@@ -197,16 +241,52 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
               Eigen::MatrixXf distribution_matrix;
               distribution_matrix.resize (number_of_bins_, number_of_bins_);
               getDistributionMatrix (i_proj, min, max, rotated_cloud, distribution_matrix);
-//TODO make an other function to calculate c-RoPS
               std::vector <float> moments;
               computeCentralMoments (distribution_matrix, moments);
 
               feature.insert (feature.end (), moments.begin (), moments.end ());
             }
+            if (crops_)
+            {
+                // C-RoPS
+                // construct color surface
+                PointCloudIn color_cloud;
+                color_cloud.header = transformed_cloud.header;
+                color_cloud.width = local_points.size();
+                color_cloud.height = 1;
+                color_cloud.points.resize (local_points.size(), PointInT ());
 
+                for (int i_loc_point = 0; i_loc_point < local_points.size() ; i_loc_point++)
+                {
+                  PointInT new_point;
+                  new_point.x = (float)transformed_cloud.points[i_loc_point].r;
+                  new_point.y = (float)transformed_cloud.points[i_loc_point].g;
+                  new_point.z = (float)transformed_cloud.points[i_loc_point].b;
+                  new_point.r = (float)0.0f;
+                  new_point.g = (float)0.0f;
+                  new_point.b = (float)0.0f;
+                  color_cloud.points[i_loc_point] = new_point;
+                }
+                //rotate local cloud surface
+                PointCloudIn rotated_color_cloud;
+                Eigen::Vector3f cmin, cmax;
+                rotateCloud (axis[i_axis], theta, color_cloud, rotated_color_cloud, cmin, cmax);
+                //for each projection (XY, XZ and YZ) compute distribution matrix and central moments
+                for (unsigned int i_proj = 0; i_proj < 3; i_proj++)
+                {
+                  Eigen::MatrixXf color_distribution_matrix;
+                  color_distribution_matrix.resize (number_of_bins_, number_of_bins_);
+                  getDistributionMatrix (i_proj, cmin, cmax, rotated_color_cloud, color_distribution_matrix);
+                  std::vector <float> color_moments;
+                  computeCentralMoments (color_distribution_matrix, color_moments);
+                  color_feature.insert (color_feature.end (), color_moments.begin (), color_moments.end ());
+                }
+            }
             theta += step_;
           } while (theta < 90.0f);
         }
+
+        // norm s-RoPS feature and add it to the output histograms
         float norm = 0.0f;
         for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
           norm += feature[i_dim];
@@ -215,8 +295,29 @@ pcl::ROPSEstimation <PointInT, PointOutT>::computeFeature (PointCloudOut& output
         else
           norm = 1.0f;
 
-        for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
-          output.points[i_point].histogram[i_dim] = feature[i_dim] * norm;
+        if (crops_)
+        {
+          // norm C-RoPS feature and add it to the output histograms
+          float color_norm = 0.0f;
+          for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
+            color_norm += color_feature[i_dim];
+          if (abs (color_norm) < std::numeric_limits <float>::epsilon ())
+            color_norm = 1.0f / color_norm;
+          else
+            color_norm = 1.0f;
+
+          for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
+          {
+            output.points[2*i_point].histogram[i_dim] = feature[i_dim] * norm;
+            output.points[2*i_point + 1].histogram[i_dim] = color_feature[i_dim] * color_norm;
+          }
+        }
+        else
+        {
+          for (unsigned int i_dim = 0; i_dim < feature_size; i_dim++)
+            output.points[i_point].histogram[i_dim] = feature[i_dim] * norm;
+        }
+
     }else
     {
       // Mark Point as non-keypoint and leave i_point free
@@ -432,6 +533,9 @@ pcl::ROPSEstimation <PointInT, PointOutT>::transformCloud (const PointInT& point
     new_point.x = transformed_point (0);
     new_point.y = transformed_point (1);
     new_point.z = transformed_point (2);
+    new_point.r = point.r;
+    new_point.g = point.g;
+    new_point.b = point.b;
     transformed_cloud.points[i] = new_point;
   }
 }

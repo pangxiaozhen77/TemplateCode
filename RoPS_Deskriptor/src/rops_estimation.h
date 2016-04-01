@@ -115,6 +115,18 @@ namespace pcl
       void
       getTriangles (std::vector <pcl::Vertices>& triangles) const;
 
+      /** \brief This method sets the bool for crops.
+        * \param[in] bool of crops
+        */
+      void
+      setCrops (bool& crops);
+
+      /** \brief Returns boolean of crops.
+        * \param[out] bool of crops
+        */
+      void
+      getCrops (bool& crops) const;
+
 
 
       /** \brief Abstract feature estimation method.
@@ -215,6 +227,9 @@ namespace pcl
 
       /** \brief Stores the angle step. Step is calculated with respect to number of rotations. */
       float step_;
+
+      /** \brief Switch to activate c-RoPS calculation. */
+      bool crops_;
 
       /** \brief Stores the set of triangles reprsenting the mesh. */
       std::vector <pcl::Vertices> triangles_;
