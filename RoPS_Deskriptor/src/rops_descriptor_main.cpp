@@ -1,4 +1,10 @@
 //#include <pcl/features/rops_estimation.h>
+//Give the path to the location and name stem of the scene, keypoint and mesh files
+//e.g. arg = "~/PathToClouds/Cloudname_unorganized"
+//the files have to be named the following way:
+//SceneCloud:     Cloudname_unorganized.pcd
+//KeypointCloud:  Cloudname_unorganized_Keypoints.pcd
+//Mesh:           Cloudname_unorganized_Mesh.ply
 #include "rops_estimation.h"
 #include <pcl/io/pcd_io.h>
 #include <iostream>
@@ -27,7 +33,7 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::Histogram<135>,(float[135], histogram, h
 int main (int argc, char** argv)
 {
   // Check arguments
-  if (argc != 3)
+  if (argc != 2)
   {
     std::cout << "Wrong number of arguments!";
     return (-1);
@@ -54,6 +60,7 @@ int main (int argc, char** argv)
   int width = cloud->width;
   int size  = width * height;
   std::cout << std::endl << "Loaded " << size << " scene points." << std::endl;
+
   int heightk = keypoint_cloud->height;
   int widthk = keypoint_cloud->width;
   int sizek  = widthk * heightk;
@@ -69,7 +76,8 @@ int main (int argc, char** argv)
   // load vertices
   std::vector <pcl::Vertices> triangles;
   std::ifstream triangles_file;
-  triangles_file.open (argv[2], std::ifstream::in);
+  std::string mesh_name  = scene_name + "_Mesh.ply";
+  triangles_file.open (mesh_name.c_str(), std::ifstream::in);
 
   for (std::string line; std::getline (triangles_file, line);)
     {
@@ -92,7 +100,7 @@ int main (int argc, char** argv)
   // Parameters for RoPS-Feature.
   float relative_radius = 25;
   bool crops = true;
-  float mesh_resolution = 0.00176735;
+  float mesh_resolution = 0.0017674;
 
   //Dont Touch!! Parameters for RoPS. Histogram initialization and registration must be adjusted to changing sizes!!
   float support_radius = relative_radius * mesh_resolution;
