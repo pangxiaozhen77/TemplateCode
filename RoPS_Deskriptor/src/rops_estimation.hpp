@@ -35,6 +35,9 @@
  * Author : Sergey Ushakov
  * Email  : sergey.s.ushakov@mail.ru
  *
+ * Edited by  : Yves Zimmermann
+ * Email      : yvesz@ethz.ch
+ *
  */
 
 #ifndef PCL_ROPS_ESTIMATION_HPP_
