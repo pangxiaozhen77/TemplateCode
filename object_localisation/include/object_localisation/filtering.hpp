@@ -22,7 +22,7 @@
 
 typedef pcl::PointXYZRGB PointType;
 
-namespace filtering {
+namespace point_cloud_filtering {
 
 /*!
  * Reads PointClouds from topic /camera/depth/points and preprocesses them with temporal median and average filters.

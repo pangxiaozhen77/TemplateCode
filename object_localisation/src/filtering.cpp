@@ -16,7 +16,7 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/ModelCoefficients.h>
 
-namespace filtering {
+namespace point_cloud_filtering {
 
 filtering::filtering()
     :  number_of_average_clouds_(0),

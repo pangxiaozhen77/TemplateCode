@@ -30,8 +30,9 @@ void toc()
             << std::endl;
   tictoc_stack.pop();
 }
+using namespace point_cloud_filtering;
+namespace object_localisation {
 
-namespace point_cloud_preprocessing {
 
 std::vector <pcl::PointCloud <pcl::PointXYZRGB> > cloud_vector;
 
@@ -108,11 +109,11 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
   ros::requestShutdown();
 }
 
-PointCloudPreprocessing::~PointCloudPreprocessing()
+ObjectLocalisation::~ObjectLocalisation()
 {
 }
 
-void PointCloudPreprocessing::publish(pcl::PointCloud<pcl::PointXYZRGB>& cloud)
+void ObjectLocalisation::publish(pcl::PointCloud<pcl::PointXYZRGB>& cloud)
 {
   pcl::PCLPointCloud2 cloud_pcl;
   pcl::toPCLPointCloud2(cloud, cloud_pcl);
@@ -124,4 +125,5 @@ void PointCloudPreprocessing::publish(pcl::PointCloud<pcl::PointXYZRGB>& cloud)
   publisher_.publish(cloud_msg);
 }
 
-} /* namespace */
+
+} /* namespace object_loclisation*/
