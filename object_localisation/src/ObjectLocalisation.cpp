@@ -74,19 +74,18 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
   ros::Subscriber sub = nodeHandle_.subscribe("/camera/depth/points", 1, saveCloud);
   publisher_ = nodeHandle_.advertise<sensor_msgs::PointCloud2>("object_detection/preprocessedCloud", 1, true);
 
-  //Save clouds from topic to cloud_vector
+  //Samplint
   while (cloud_vector.size() < number_of_average_clouds + number_of_median_clouds)
   {
    ros::spinOnce();
    r.sleep();
   }
-
   std::cout << "Clouds are sampled."
             << "  width = " << cloud_vector[0].width
             << "  height = " << cloud_vector[0].height
             << "  size = " << cloud_vector[0].size() << std::endl;
 
-  // initialize point clouds
+  // Filtering
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr preprocessed_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB> ());
 
   filtering filtering;
@@ -99,11 +98,17 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
   filtering.getPreprocessedCloud(preprocessed_cloud_ptr);
   publish(*preprocessed_cloud_ptr);
 
+  // Building Mesh
+  pcl::PolygonMesh triangles;
+
+
   //Timer off
   toc();
 
-  // saving clouds to PCD
-  pcl::io::savePCDFileASCII ("PointCloud_preprocessed_unorganized.pcd", *preprocessed_cloud_ptr);
+  // saving files
+  pcl::io::savePCDFileASCII ("PointCloud_preprocessed.pcd", *preprocessed_cloud_ptr);
+  pcl::io::savePLYFile ("PointCloud_preprocessed_Mesh.ply", triangles);
+  std::cout << "Mesh is saved" << std::endl;
 
   // shut down node
   ros::requestShutdown();
