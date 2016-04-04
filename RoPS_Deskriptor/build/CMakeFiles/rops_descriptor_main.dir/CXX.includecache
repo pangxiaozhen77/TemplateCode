@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/yves/TemplateCode/RoPS_Deskriptor/src/feature.h
+/home/yves/TemplateCode/RoPS_Deskriptor/src/./feature2.h
 boost/function.hpp
 -
 boost/bind.hpp
@@ -15,10 +15,10 @@ pcl/pcl_base.h
 -
 pcl/search/search.h
 -
-feature.hpp
-/home/yves/TemplateCode/RoPS_Deskriptor/src/feature.hpp
+feature2.hpp
+-
 
-/home/yves/TemplateCode/RoPS_Deskriptor/src/feature.hpp
+/home/yves/TemplateCode/RoPS_Deskriptor/src/./feature2.hpp
 pcl/search/pcl_search.h
 -
 
@@ -35,10 +35,10 @@ pcl/io/ply_io.h
 -
 
 /home/yves/TemplateCode/RoPS_Deskriptor/src/rops_estimation.h
+feature2.h
+-
 pcl/PolygonMesh.h
 -
-feature.h
-/home/yves/TemplateCode/RoPS_Deskriptor/src/feature.h
 set
 -
 rops_estimation.hpp

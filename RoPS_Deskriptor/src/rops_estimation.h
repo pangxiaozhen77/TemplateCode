@@ -43,8 +43,8 @@
 #ifndef PCL_ROPS_ESIMATION_H_
 #define PCL_ROPS_ESIMATION_H_
 
+#include <feature2.h>
 #include <pcl/PolygonMesh.h>
-#include "feature.h"
 #include <set>
 
 namespace pcl
@@ -55,17 +55,17 @@ namespace pcl
     * Yulan Guo, Ferdous Sohel, Mohammed Bennamoun, Min Lu and Jianwei Wan.
     */
   template <typename PointInT, typename PointOutT>
-  class ROPSEstimation : public pcl::Feature <PointInT, PointOutT>
+  class ROPSEstimation : public pcl::Feature2 <PointInT, PointOutT>
   {
     public:
 
-      using Feature <PointInT, PointOutT>::input_;
-      using Feature <PointInT, PointOutT>::indices_;
-      using Feature <PointInT, PointOutT>::surface_;
-      using Feature <PointInT, PointOutT>::tree_;
+      using Feature2 <PointInT, PointOutT>::input_;
+      using Feature2 <PointInT, PointOutT>::indices_;
+      using Feature2 <PointInT, PointOutT>::surface_;
+      using Feature2 <PointInT, PointOutT>::tree_;
 
-      typedef typename pcl::Feature <PointInT, PointOutT>::PointCloudOut PointCloudOut;
-      typedef typename pcl::Feature <PointInT, PointOutT>::PointCloudIn PointCloudIn;
+      typedef typename pcl::Feature2 <PointInT, PointOutT>::PointCloudOut PointCloudOut;
+      typedef typename pcl::Feature2 <PointInT, PointOutT>::PointCloudIn PointCloudIn;
 
     public:
 

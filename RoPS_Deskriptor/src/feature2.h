@@ -38,8 +38,8 @@
  *
  */
 
-#ifndef PCL_FEATURE_H_
-#define PCL_FEATURE_H_
+#ifndef PCL_FEATURE2_H_
+#define PCL_FEATURE2_H_
 
 #if defined __GNUC__
 #  pragma GCC system_header 
@@ -71,7 +71,7 @@ namespace pcl
     * \ingroup features
     */
   template <typename PointInT, typename PointOutT>
-  class Feature : public PCLBase<PointInT>
+  class Feature2 : public PCLBase<PointInT>
   {
     public:
       using PCLBase<PointInT>::indices_;
@@ -79,8 +79,8 @@ namespace pcl
 
       typedef PCLBase<PointInT> BaseClass;
 
-      typedef boost::shared_ptr< Feature<PointInT, PointOutT> > Ptr;
-      typedef boost::shared_ptr< const Feature<PointInT, PointOutT> > ConstPtr;
+      typedef boost::shared_ptr< Feature2<PointInT, PointOutT> > Ptr;
+      typedef boost::shared_ptr< const Feature2<PointInT, PointOutT> > ConstPtr;
 
       typedef typename pcl::search::Search<PointInT> KdTree;
       typedef typename pcl::search::Search<PointInT>::Ptr KdTreePtr;
@@ -96,7 +96,7 @@ namespace pcl
 
     public:
       /** \brief Empty constructor. */
-      Feature () :
+      Feature2 () :
         feature_name_ (), search_method_surface_ (),
         surface_(), tree_(),
         search_parameter_(0), search_radius_(0), k_(0),
@@ -104,7 +104,7 @@ namespace pcl
       {}
             
       /** \brief Empty destructor */
-      virtual ~Feature () {}
+      virtual ~Feature2 () {}
 
       /** \brief Provide a pointer to a dataset to add additional information
         * to estimate the features for every point in the input dataset.  This
@@ -271,199 +271,8 @@ namespace pcl
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };
 
-
-  ////////////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////
-  template <typename PointInT, typename PointNT, typename PointOutT>
-  class FeatureFromNormals : public Feature<PointInT, PointOutT>
-  {
-    typedef typename Feature<PointInT, PointOutT>::PointCloudIn PointCloudIn;
-    typedef typename PointCloudIn::Ptr PointCloudInPtr;
-    typedef typename PointCloudIn::ConstPtr PointCloudInConstPtr;
-    typedef typename Feature<PointInT, PointOutT>::PointCloudOut PointCloudOut;
-
-    public:
-      typedef typename pcl::PointCloud<PointNT> PointCloudN;
-      typedef typename PointCloudN::Ptr PointCloudNPtr;
-      typedef typename PointCloudN::ConstPtr PointCloudNConstPtr;
-
-      typedef boost::shared_ptr< FeatureFromNormals<PointInT, PointNT, PointOutT> > Ptr;
-      typedef boost::shared_ptr< const FeatureFromNormals<PointInT, PointNT, PointOutT> > ConstPtr;
-
-      // Members derived from the base class
-      using Feature<PointInT, PointOutT>::input_;
-      using Feature<PointInT, PointOutT>::surface_;
-      using Feature<PointInT, PointOutT>::getClassName;
-
-      /** \brief Empty constructor. */
-      FeatureFromNormals () : normals_ () {}
-      
-      /** \brief Empty destructor */
-      virtual ~FeatureFromNormals () {}
-
-      /** \brief Provide a pointer to the input dataset that contains the point normals of
-        * the XYZ dataset.
-        * In case of search surface is set to be different from the input cloud,
-        * normals should correspond to the search surface, not the input cloud!
-        * \param[in] normals the const boost shared pointer to a PointCloud of normals.
-        * By convention, L2 norm of each normal should be 1.
-        */
-      inline void
-      setInputNormals (const PointCloudNConstPtr &normals) { normals_ = normals; }
-
-      /** \brief Get a pointer to the normals of the input XYZ point cloud dataset. */
-      inline PointCloudNConstPtr
-      getInputNormals () const { return (normals_); }
-
-    protected:
-      /** \brief A pointer to the input dataset that contains the point normals of the XYZ
-        * dataset.
-        */
-      PointCloudNConstPtr normals_;
-
-      /** \brief This method should get called before starting the actual computation. */
-      virtual bool
-      initCompute ();
-
-    public:
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  };
-
-  ////////////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////
-  template <typename PointInT, typename PointLT, typename PointOutT>
-  class FeatureFromLabels : public Feature<PointInT, PointOutT>
-  {
-    typedef typename Feature<PointInT, PointOutT>::PointCloudIn PointCloudIn;
-    typedef typename PointCloudIn::Ptr PointCloudInPtr;
-    typedef typename PointCloudIn::ConstPtr PointCloudInConstPtr;
-
-    typedef typename pcl::PointCloud<PointLT> PointCloudL;
-    typedef typename PointCloudL::Ptr PointCloudNPtr;
-    typedef typename PointCloudL::ConstPtr PointCloudLConstPtr;
-
-    typedef typename Feature<PointInT, PointOutT>::PointCloudOut PointCloudOut;
-
-    public:
-      typedef boost::shared_ptr< FeatureFromLabels<PointInT, PointLT, PointOutT> > Ptr;
-      typedef boost::shared_ptr< const FeatureFromLabels<PointInT, PointLT, PointOutT> > ConstPtr;
-
-      // Members derived from the base class
-      using Feature<PointInT, PointOutT>::input_;
-      using Feature<PointInT, PointOutT>::surface_;
-      using Feature<PointInT, PointOutT>::getClassName;
-      using Feature<PointInT, PointOutT>::k_;
-
-      /** \brief Empty constructor. */
-      FeatureFromLabels () : labels_ ()
-      {
-        k_ = 1; // Search tree is not always used here.
-      }
-      
-      /** \brief Empty destructor */
-      virtual ~FeatureFromLabels () {}
-
-      /** \brief Provide a pointer to the input dataset that contains the point labels of
-        * the XYZ dataset.
-        * In case of search surface is set to be different from the input cloud,
-        * labels should correspond to the search surface, not the input cloud!
-        * \param[in] labels the const boost shared pointer to a PointCloud of labels.
-        */
-      inline void
-      setInputLabels (const PointCloudLConstPtr &labels)
-      {
-        labels_ = labels;
-      }
-
-      /** \brief Get a pointer to the labels of the input XYZ point cloud dataset. */
-      inline PointCloudLConstPtr
-      getInputLabels () const
-      {
-        return (labels_);
-      }
-
-    protected:
-      /** \brief A pointer to the input dataset that contains the point labels of the XYZ
-        * dataset.
-        */
-      PointCloudLConstPtr labels_;
-
-      /** \brief This method should get called before starting the actual computation. */
-      virtual bool
-      initCompute ();
-
-    public:
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  };
-
-  ////////////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////
-  /** \brief FeatureWithLocalReferenceFrames provides a public interface for descriptor
-    * extractor classes which need a local reference frame at each input keypoint.
-    *
-    * \attention
-    * This interface is for backward compatibility with existing code and in the future it could be
-    * merged with pcl::Feature. Subclasses should call the protected method initLocalReferenceFrames ()
-    * to correctly initialize the frames_ member.
-    *
-    * \author Nicola Fioraio
-    * \ingroup features
-    */
-  template <typename PointInT, typename PointRFT>
-  class FeatureWithLocalReferenceFrames
-  {
-    public:
-      typedef pcl::PointCloud<PointRFT> PointCloudLRF;
-      typedef typename PointCloudLRF::Ptr PointCloudLRFPtr;
-      typedef typename PointCloudLRF::ConstPtr PointCloudLRFConstPtr;
-
-      /** \brief Empty constructor. */
-      FeatureWithLocalReferenceFrames () : frames_ (), frames_never_defined_ (true) {}
-
-       /** \brief Empty destructor. */
-      virtual ~FeatureWithLocalReferenceFrames () {}
-
-      /** \brief Provide a pointer to the input dataset that contains the local
-        * reference frames of the XYZ dataset.
-        * In case of search surface is set to be different from the input cloud,
-        * local reference frames should correspond to the input cloud, not the search surface!
-        * \param[in] frames the const boost shared pointer to a PointCloud of reference frames.
-        */
-      inline void
-      setInputReferenceFrames (const PointCloudLRFConstPtr &frames)
-      {
-        frames_ = frames;
-        frames_never_defined_ = false;
-      }
-
-      /** \brief Get a pointer to the local reference frames. */
-      inline PointCloudLRFConstPtr
-      getInputReferenceFrames () const
-      {
-        return (frames_);
-      }
-
-    protected:
-      /** \brief A boost shared pointer to the local reference frames. */
-      PointCloudLRFConstPtr frames_;
-      /** \brief The user has never set the frames. */
-      bool frames_never_defined_;
-
-      /** \brief Check if frames_ has been correctly initialized and compute it if needed.
-        * \param input the subclass' input cloud dataset.
-        * \param lrf_estimation a pointer to a local reference frame estimation class to be used as default.
-        * \return true if frames_ has been correctly initialized.
-        */
-      typedef typename Feature<PointInT, PointRFT>::Ptr LRFEstimationPtr;
-      virtual bool
-      initLocalReferenceFrames (const size_t& indices_size,
-                                const LRFEstimationPtr& lrf_estimation = LRFEstimationPtr());
-  };
 }
 
-#include "feature.hpp"
+#include <feature2.hpp>
 
 #endif  //#ifndef PCL_FEATURE_H_
