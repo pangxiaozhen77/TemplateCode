@@ -20,7 +20,14 @@ filtering::filtering()
        cloud_width_(0),
        cloud_height_(0),
        cloud_size_(0),
-       cloud_vector_()
+       cloud_vector_(),
+       z_threshold_(0.02),
+       xmin_(-1),
+       xmax_(1),
+       ymin_(-1),
+       ymax_(1),
+       zmin_(0.01),
+       zmax_(2)
 {
 }
 
@@ -31,13 +38,11 @@ filtering::~filtering()
 
 bool filtering::getPreprocessedCloud(pcl::PointCloud<PointType>& preprocessed_cloud){
 
-  std::cout << "4.1" << std::endl;
+
 if(!medianFilter(preprocessed_cloud))
   return false;
-std::cout << "4.2" << std::endl;
 if(!averageFilter(preprocessed_cloud))
   return false;
-std::cout << "4.3" << std::endl;
 
   return true;
 }
@@ -60,6 +65,22 @@ bool filtering::setNumberOfMedianClouds(int number_of_median_clouds){
 
 bool filtering::setInputClouds(std::vector <pcl::PointCloud <pcl::PointXYZRGB> > cloud_vector){
   cloud_vector_ = cloud_vector;
+  return true;
+}
+
+bool filtering::setClippingBoundaries(std::vector<float> boundaries){
+  if (boundaries.size()!=6){
+    std::cout << "Error: Wrong number of boundary values." << std::endl;
+    return false;
+  }
+
+  xmin_ = boundaries[0];
+  xmax_ = boundaries[1];
+  ymin_ = boundaries[2];
+  ymax_ = boundaries[3];
+  zmin_ = boundaries[4];
+  zmax_ = boundaries[5];
+
   return true;
 }
 
@@ -96,16 +117,17 @@ bool filtering::medianFilter(pcl::PointCloud<PointType>& median_cloud){
 }
 
 bool filtering::averageFilter(pcl::PointCloud<PointType>& base_cloud){
-  //get the cloud dimensions
+
+//get the cloud dimensions
   if (cloud_width_ == 0 || cloud_height_ == 0){
-  cloud_width_ = base_cloud.width;
-  cloud_height_ = base_cloud.height;
-  cloud_size_ = cloud_width_ * cloud_size_;
+  cloud_width_ = cloud_vector_[0].width;
+  cloud_height_ = cloud_vector_[0].height;
+  cloud_size_ = cloud_width_ * cloud_height_;
   }
 
   pcl::PointCloud<pcl::PointXYZRGB> unorganized_cloud;
 
-  for (int k = 0; k < number_of_average_clouds_; ++k)
+  for (int k = number_of_median_clouds_; k < number_of_average_clouds_ + number_of_median_clouds_; ++k)
     {
         //iterate over points
         for (int i = 0; i < cloud_width_; i++)
@@ -115,7 +137,7 @@ bool filtering::averageFilter(pcl::PointCloud<PointType>& base_cloud){
             pcl::PointXYZRGB point_base_cloud = base_cloud(i,j);
             pcl::PointXYZRGB point_new_cloud = cloud_vector_[k](i,j);
 
-            if (point_base_cloud.z != 0 && point_new_cloud.z != 0 && std::abs(point_base_cloud.z - point_new_cloud.z) < 0.02)
+            if (point_base_cloud.z != 0 && point_new_cloud.z != 0 && std::abs(point_base_cloud.z - point_new_cloud.z) < z_threshold_)
             {
               point_base_cloud.x = (point_base_cloud.x * (k-1) + point_new_cloud.x)/k;
               point_base_cloud.y = (point_base_cloud.y * (k-1) + point_new_cloud.y)/k;
@@ -125,19 +147,22 @@ bool filtering::averageFilter(pcl::PointCloud<PointType>& base_cloud){
               point_base_cloud.b = (point_base_cloud.b * (k-1) + point_new_cloud.b)/k;
 
             }
-            else if (point_new_cloud.z != 0)
-            {
-              point_base_cloud.x = point_new_cloud.x;
-              point_base_cloud.y = point_new_cloud.y;
-              point_base_cloud.z = point_new_cloud.z;
-              point_base_cloud.r = point_new_cloud.r;
-              point_base_cloud.g = point_new_cloud.g;
-              point_base_cloud.b = point_new_cloud.b;
-            }
+//            else if (point_new_cloud.z != 0 && point_base_cloud.z == 0)
+//            {
+//              point_base_cloud.x = point_new_cloud.x;
+//              point_base_cloud.y = point_new_cloud.y;
+//              point_base_cloud.z = point_new_cloud.z;
+//              point_base_cloud.r = point_new_cloud.r;
+//              point_base_cloud.g = point_new_cloud.g;
+//              point_base_cloud.b = point_new_cloud.b;
+//            }
 
             base_cloud(i,j) = point_base_cloud;
 
-            if (k == number_of_average_clouds_-1)
+            bool ispartofcloud =  point_base_cloud.x >= xmin_ && point_base_cloud.x <= xmax_ &&
+                                  point_base_cloud.y >= ymin_ && point_base_cloud.y <= ymax_ &&
+                                  point_base_cloud.z >= zmin_ && point_base_cloud.z <= zmax_;
+            if (k == number_of_average_clouds_ + number_of_median_clouds_-1 && ispartofcloud)
             {
               unorganized_cloud.push_back(point_base_cloud);
             }

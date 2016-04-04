@@ -16,6 +16,21 @@
 #include "point_cloud_preprocessing/filtering.hpp"
 #include "point_cloud_preprocessing/PointCloudPreprocessing.hpp"
 
+std::stack<clock_t> tictoc_stack;
+
+void tic()
+{
+  tictoc_stack.push(clock());
+}
+
+void toc()
+{
+  std::cout << "Time elapsed for filtering: "
+            << ((double)(clock()-tictoc_stack.top()))/CLOCKS_PER_SEC
+            << std::endl;
+  tictoc_stack.pop();
+}
+
 namespace point_cloud_preprocessing {
 
 std::vector <pcl::PointCloud <pcl::PointXYZRGB> > cloud_vector;
@@ -32,8 +47,17 @@ PointCloudPreprocessing::PointCloudPreprocessing(ros::NodeHandle nodeHandle)
   //Filtering Parameters
   int number_of_average_clouds = 15;
   int number_of_median_clouds = 5;
+  float z_threshold = 0.04;
+  std::vector<float> boundaries;
+  boundaries.push_back(-0.1);
+  boundaries.push_back(0.25);
+  boundaries.push_back(-0.3);
+  boundaries.push_back(0.3);
+  boundaries.push_back(0.6);
+  boundaries.push_back(1.5);
   ros::Rate r(60);
 
+  tic();
   // initializing publisher and subscriber
   ros::Subscriber sub = nodeHandle_.subscribe("/camera/depth/points", 1, saveCloud);
   publisher_ = nodeHandle_.advertise<sensor_msgs::PointCloud2>("object_detection/preprocessedCloud", 1, true);
@@ -52,10 +76,11 @@ PointCloudPreprocessing::PointCloudPreprocessing(ros::NodeHandle nodeHandle)
   filtering.setNumberOfMedianClouds(number_of_median_clouds);
   filtering.setNumberOfAverageClouds(number_of_average_clouds);
   filtering.setInputClouds(cloud_vector);
-  std::cout << "3" << std::endl;
+  filtering.setClippingBoundaries(boundaries);
   filtering.getPreprocessedCloud(preprocessed_cloud);
-  std::cout << "4" << std::endl;
   publish(preprocessed_cloud);
+
+  toc();
 
   // saving clouds to PCD
   pcl::io::savePCDFileASCII ("PointCloud_preprocessed_unorganized.pcd", preprocessed_cloud);

@@ -62,6 +62,11 @@ class filtering
    */
   bool setInputClouds(std::vector <pcl::PointCloud <pcl::PointXYZRGB> > cloud_vector);
 
+  /*!
+   * Samples and Preprocesses PointClouds and saves them to preprocessed_cloud
+   */
+  bool setClippingBoundaries(std::vector<float> boundaries);
+
 
  private:
 
@@ -92,6 +97,27 @@ class filtering
 
   //! Number of clouds to be used for median filter
   int cloud_size_;
+
+  //! Threshold of z Position of average Cloud towards base_cloud
+  float z_threshold_;
+
+  //! clipping boundary
+  float xmin_;
+
+  //! clipping boundary
+  float ymin_;
+
+  //! clipping boundary
+  float zmin_;
+
+  //! clipping boundary
+  float xmax_;
+
+  //! clipping boundary
+  float ymax_;
+
+  //! clipping boundary
+  float zmax_;
 
   std::vector <pcl::PointCloud <pcl::PointXYZRGB> > cloud_vector_;
 
