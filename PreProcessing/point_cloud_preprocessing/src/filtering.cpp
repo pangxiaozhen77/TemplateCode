@@ -11,6 +11,10 @@
 #include <pcl_ros/transforms.h>
 #include <pcl/conversions.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/ModelCoefficients.h>
 
 namespace point_cloud_preprocessing {
 
@@ -22,6 +26,7 @@ filtering::filtering()
        cloud_size_(0),
        cloud_vector_(),
        z_threshold_(0.02),
+       planarSegmentationTolerance_(0.02),
        xmin_(-1),
        xmax_(1),
        ymin_(-1),
@@ -36,13 +41,20 @@ filtering::~filtering()
 }
 
 
-bool filtering::getPreprocessedCloud(pcl::PointCloud<PointType>& preprocessed_cloud){
+bool filtering::getPreprocessedCloud(pcl::PointCloud<PointType>::Ptr preprocessed_cloud_ptr){
+if(number_of_average_clouds_ + number_of_median_clouds_ > cloud_vector_.size()){
+  std::cout << "There are too few clouds in the input vector, for these filter parameters!" << std::endl;
+      return false;
+}
 
+if(!medianFilter(*preprocessed_cloud_ptr))
+  return false;
 
-if(!medianFilter(preprocessed_cloud))
+if(!averageFilter(*preprocessed_cloud_ptr))
   return false;
-if(!averageFilter(preprocessed_cloud))
-  return false;
+
+if(!planarSegmentation(preprocessed_cloud_ptr))
+  std::cout << "Couldn't find a plane!" << std::endl;
 
   return true;
 }
@@ -84,6 +96,16 @@ bool filtering::setClippingBoundaries(std::vector<float> boundaries){
   return true;
 }
 
+bool filtering::setZThreshold(float z_threshold){
+  z_threshold_ = z_threshold;
+  return true;
+}
+
+bool filtering::setPlanarSegmentationTolerance(float planarSegmentationTolerance){
+  planarSegmentationTolerance_ = planarSegmentationTolerance;
+  return true;
+}
+
 bool filtering::medianFilter(pcl::PointCloud<PointType>& median_cloud){
 
   //get the cloud dimensions
@@ -113,6 +135,10 @@ bool filtering::medianFilter(pcl::PointCloud<PointType>& median_cloud){
     }
   }
   median_cloud = cloud_vector_[0];
+
+
+  std::cout << "Took median from " << number_of_median_clouds_ << " clouds." << std::endl;
+
   return true;
 }
 
@@ -127,7 +153,7 @@ bool filtering::averageFilter(pcl::PointCloud<PointType>& base_cloud){
 
   pcl::PointCloud<pcl::PointXYZRGB> unorganized_cloud;
 
-  for (int k = number_of_median_clouds_; k < number_of_average_clouds_ + number_of_median_clouds_; ++k)
+  for (int k = 0; k < number_of_average_clouds_; ++k)
     {
         //iterate over points
         for (int i = 0; i < cloud_width_; i++)
@@ -135,16 +161,16 @@ bool filtering::averageFilter(pcl::PointCloud<PointType>& base_cloud){
           for (int j = 0; j < cloud_height_; j++)
           {
             pcl::PointXYZRGB point_base_cloud = base_cloud(i,j);
-            pcl::PointXYZRGB point_new_cloud = cloud_vector_[k](i,j);
+            pcl::PointXYZRGB point_new_cloud = cloud_vector_[k + number_of_median_clouds_](i,j);
 
             if (point_base_cloud.z != 0 && point_new_cloud.z != 0 && std::abs(point_base_cloud.z - point_new_cloud.z) < z_threshold_)
             {
-              point_base_cloud.x = (point_base_cloud.x * (k-1) + point_new_cloud.x)/k;
-              point_base_cloud.y = (point_base_cloud.y * (k-1) + point_new_cloud.y)/k;
-              point_base_cloud.z = (point_base_cloud.z * (k-1) + point_new_cloud.z)/k;
-              point_base_cloud.r = (point_base_cloud.r * (k-1) + point_new_cloud.r)/k;
-              point_base_cloud.g = (point_base_cloud.g * (k-1) + point_new_cloud.g)/k;
-              point_base_cloud.b = (point_base_cloud.b * (k-1) + point_new_cloud.b)/k;
+              point_base_cloud.x = (point_base_cloud.x * (k) + point_new_cloud.x)/(k+1);
+              point_base_cloud.y = (point_base_cloud.y * (k) + point_new_cloud.y)/(k+1);
+              point_base_cloud.z = (point_base_cloud.z * (k) + point_new_cloud.z)/(k+1);
+              point_base_cloud.r = (point_base_cloud.r * (k) + point_new_cloud.r)/(k+1);
+              point_base_cloud.g = (point_base_cloud.g * (k) + point_new_cloud.g)/(k+1);
+              point_base_cloud.b = (point_base_cloud.b * (k) + point_new_cloud.b)/(k+1);
 
             }
 //            else if (point_new_cloud.z != 0 && point_base_cloud.z == 0)
@@ -162,7 +188,7 @@ bool filtering::averageFilter(pcl::PointCloud<PointType>& base_cloud){
             bool ispartofcloud =  point_base_cloud.x >= xmin_ && point_base_cloud.x <= xmax_ &&
                                   point_base_cloud.y >= ymin_ && point_base_cloud.y <= ymax_ &&
                                   point_base_cloud.z >= zmin_ && point_base_cloud.z <= zmax_;
-            if (k == number_of_average_clouds_ + number_of_median_clouds_-1 && ispartofcloud)
+            if (k == number_of_average_clouds_-1 && ispartofcloud)
             {
               unorganized_cloud.push_back(point_base_cloud);
             }
@@ -174,7 +200,63 @@ bool filtering::averageFilter(pcl::PointCloud<PointType>& base_cloud){
   base_cloud.clear();
   base_cloud = unorganized_cloud;
 
+  std::cout << "Averaged with " << number_of_average_clouds_ << " clouds." << std::endl;
+  std::cout << "Reduced cloud by clipping to  " << base_cloud.size() << " points." << std::endl;
   return true;
 }
 
+bool filtering::planarSegmentation(pcl::PointCloud<PointType>::Ptr preprocessed_cloud_ptr){
+
+  pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+  pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+
+  // Create the segmentation object
+  pcl::SACSegmentation<pcl::PointXYZRGB> seg;
+  // Optional
+  seg.setOptimizeCoefficients (true);
+  // Mandatory
+  seg.setModelType (pcl::SACMODEL_PLANE);
+  seg.setMethodType (pcl::SAC_RANSAC);
+  seg.setDistanceThreshold (planarSegmentationTolerance_);
+  seg.setInputCloud (preprocessed_cloud_ptr);
+  seg.segment (*inliers, *coefficients);
+
+
+  if (inliers->indices.size () == 0)
+  {
+    PCL_ERROR ("Could not estimate a planar model for the given dataset.");
+    return (-1);
+  }
+
+//  std::cerr << "Model coefficients: " << coefficients->values[0] << " "
+//                                      << coefficients->values[1] << " "
+//                                      << coefficients->values[2] << " "
+//                                      << coefficients->values[3] << std::endl;
+//
+//  std::cerr << "Model inliers: " << inliers->indices.size () << std::endl;
+
+  //Move inlayers to zero
+  for (int i = 0; i < inliers->indices.size(); i++)
+  {
+    preprocessed_cloud_ptr->points[inliers->indices[i]].x = 0;
+    preprocessed_cloud_ptr->points[inliers->indices[i]].y = 0;
+    preprocessed_cloud_ptr->points[inliers->indices[i]].z = 0;
+  }
+
+  pcl::PointCloud<PointType>::Ptr segmentedCloud (new pcl::PointCloud<PointType>);
+  //Remove inlayers from cloud
+  for (int i_point = 0; i_point < preprocessed_cloud_ptr->size(); i_point++)
+  {
+    if (preprocessed_cloud_ptr->points[i_point].z != 0)
+      segmentedCloud->push_back(preprocessed_cloud_ptr->points[i_point]);
+  }
+  preprocessed_cloud_ptr->points = segmentedCloud->points;
+  preprocessed_cloud_ptr->width = segmentedCloud->width;
+  preprocessed_cloud_ptr->height = segmentedCloud->height;
+
+
+  std::cout << "Removed " << inliers->indices.size() << " points as part of a plane." << std::endl;
+
+  return true;
+}
 } /* namespace */

@@ -43,29 +43,40 @@ class filtering
   virtual ~filtering();
 
   /*!
-   * Samples and Preprocesses PointClouds and saves them to preprocessed_cloud
+   * Applies median-, average-, passthrough- and segmentation-filter on the input clouds
    */
-  bool getPreprocessedCloud(pcl::PointCloud<PointType>& preprocessed_cloud);
+  bool getPreprocessedCloud(pcl::PointCloud<PointType>::Ptr preprocessed_cloud_ptr);
 
   /*!
-   * Samples and Preprocesses PointClouds and saves them to preprocessed_cloud
+   * Sets number of clouds to be averaged
    */
   bool setNumberOfAverageClouds(int number_of_averaged_clouds);
 
   /*!
-   * Samples and Preprocesses PointClouds and saves them to preprocessed_cloud
+   * Sets number of clouds to be used for median
    */
   bool setNumberOfMedianClouds(int number_of_median_clouds);
 
   /*!
-   * Samples and Preprocesses PointClouds and saves them to preprocessed_cloud
+   * Sets the input clouds. Vector length must coincide with sum of clouds for average and median!
    */
   bool setInputClouds(std::vector <pcl::PointCloud <pcl::PointXYZRGB> > cloud_vector);
 
   /*!
-   * Samples and Preprocesses PointClouds and saves them to preprocessed_cloud
+   * Sets the boundaries for passthrough filtering
    */
   bool setClippingBoundaries(std::vector<float> boundaries);
+
+  /*!
+   * Sets the Tolerance for planar segmentation
+   */
+  bool setPlanarSegmentationTolerance(float planarSegmentationTolerance);
+
+  /*!
+   * Sets the depth threshold for averaging
+   */
+  bool setZThreshold(float z_threshold);
+
 
 
  private:
@@ -80,6 +91,11 @@ class filtering
    * Applies average filter on base_cloud using number_of_clouds and writes resulting PointCloud in base_cloud
    */
   bool averageFilter(pcl::PointCloud<PointType>& base_cloud);
+
+  /*!
+   * Applies average filter on base_cloud using number_of_clouds and writes resulting PointCloud in base_cloud
+   */
+  bool planarSegmentation(pcl::PointCloud<PointType>::Ptr preprocessed_cloud_ptr);
 
  private:
 
@@ -100,6 +116,9 @@ class filtering
 
   //! Threshold of z Position of average Cloud towards base_cloud
   float z_threshold_;
+
+  //! Tolerance for the distance to the segmented plane
+  float planarSegmentationTolerance_;
 
   //! clipping boundary
   float xmin_;

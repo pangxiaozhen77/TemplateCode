@@ -47,17 +47,28 @@ PointCloudPreprocessing::PointCloudPreprocessing(ros::NodeHandle nodeHandle)
   //Filtering Parameters
   int number_of_average_clouds = 15;
   int number_of_median_clouds = 5;
-  float z_threshold = 0.04;
-  std::vector<float> boundaries;
-  boundaries.push_back(-0.1);
-  boundaries.push_back(0.25);
-  boundaries.push_back(-0.3);
-  boundaries.push_back(0.3);
-  boundaries.push_back(0.6);
-  boundaries.push_back(1.5);
+  float z_threshold = 0.02;
+  float planarSegmentationTolerance = 0.05;
+  float xmin = -1;
+  float xmax = 1;
+  float ymin = -1;
+  float ymax = 1;
+  float zmin = 0.5;
+  float zmax = 3;
   ros::Rate r(60);
 
+  //Building boundary vector
+  std::vector<float> boundaries;
+  boundaries.push_back(xmin);
+  boundaries.push_back(xmax);
+  boundaries.push_back(ymin);
+  boundaries.push_back(ymax);
+  boundaries.push_back(zmin);
+  boundaries.push_back(zmax);
+
+  // Timer on
   tic();
+
   // initializing publisher and subscriber
   ros::Subscriber sub = nodeHandle_.subscribe("/camera/depth/points", 1, saveCloud);
   publisher_ = nodeHandle_.advertise<sensor_msgs::PointCloud2>("object_detection/preprocessedCloud", 1, true);
@@ -69,21 +80,29 @@ PointCloudPreprocessing::PointCloudPreprocessing(ros::NodeHandle nodeHandle)
    r.sleep();
   }
 
+  std::cout << "Clouds are sampled."
+            << "  width = " << cloud_vector[0].width
+            << "  height = " << cloud_vector[0].height
+            << "  size = " << cloud_vector[0].size() << std::endl;
+
   // initialize point clouds
-  pcl::PointCloud<pcl::PointXYZRGB> preprocessed_cloud;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr preprocessed_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB> ());
 
   filtering filtering;
   filtering.setNumberOfMedianClouds(number_of_median_clouds);
   filtering.setNumberOfAverageClouds(number_of_average_clouds);
   filtering.setInputClouds(cloud_vector);
   filtering.setClippingBoundaries(boundaries);
-  filtering.getPreprocessedCloud(preprocessed_cloud);
-  publish(preprocessed_cloud);
+  filtering.setZThreshold(z_threshold);
+  filtering.setPlanarSegmentationTolerance(planarSegmentationTolerance);
+  filtering.getPreprocessedCloud(preprocessed_cloud_ptr);
+  publish(*preprocessed_cloud_ptr);
 
+  //Timer off
   toc();
 
   // saving clouds to PCD
-  pcl::io::savePCDFileASCII ("PointCloud_preprocessed_unorganized.pcd", preprocessed_cloud);
+  pcl::io::savePCDFileASCII ("PointCloud_preprocessed_unorganized.pcd", *preprocessed_cloud_ptr);
 
   // shut down node
   ros::requestShutdown();
