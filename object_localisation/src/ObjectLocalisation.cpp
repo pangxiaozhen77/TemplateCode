@@ -79,11 +79,11 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
 
   //Keypoint Detection Parameters
     double normal_radius = 4;
-    double border_radius = 4;
     double salient_radius = 6;
-    double non_max_radius = 4;
-    double gamma_21 = 0.975;
-    double gamma_32 = 0.975;
+    double border_radius = salient_radius + 1;
+    double non_max_radius = salient_radius -2;
+    double gamma_21 = 0.9;
+    double gamma_32 = 0.9;
     double min_neighbors = 5;
     int threads = 4;
 
@@ -136,6 +136,7 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
   // Building Mesh
   pcl::PolygonMesh::Ptr triangles (new pcl::PolygonMesh);
   meshing meshing;
+
   meshing.setInputCloud(preprocessed_cloud_ptr);
   meshing.setMaxAngle(max_angle);
   meshing.setMinAngle(min_angle);
@@ -150,6 +151,7 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
   // Keypoint Detection
   pcl::PointCloud<pcl::PointXYZRGB> keypoint_cloud;
   keypoint keypoint;
+
   keypoint.setModelResolution(model_resolution);
   keypoint.setSalientRadius (salient_radius);
   keypoint.setNonMaxRadius (non_max_radius);
