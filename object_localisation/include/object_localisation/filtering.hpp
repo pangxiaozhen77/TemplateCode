@@ -17,7 +17,6 @@
 
 //PCL
 #include <pcl/common/common_headers.h>
-#include <sensor_msgs/PointCloud2.h>
 
 
 typedef pcl::PointXYZRGB PointType;
@@ -45,7 +44,7 @@ class filtering
   /*!
    * Applies median-, average-, passthrough- and segmentation-filter on the input clouds
    */
-  bool getPreprocessedCloud(pcl::PointCloud<PointType>::Ptr preprocessed_cloud_ptr);
+  bool compute(pcl::PointCloud<PointType>::Ptr preprocessed_cloud_ptr);
 
   /*!
    * Sets number of clouds to be averaged
@@ -71,6 +70,11 @@ class filtering
    * Sets the Tolerance for planar segmentation
    */
   bool setPlanarSegmentationTolerance(float planarSegmentationTolerance);
+
+  /*!
+   * Sets the minimum amount of inliers
+   */
+  bool setMinNumberOfInliers(int min_number_of_inliers);
 
   /*!
    * Sets the depth threshold for averaging
@@ -119,6 +123,9 @@ class filtering
 
   //! Tolerance for the distance to the segmented plane
   float planarSegmentationTolerance_;
+
+  //! Minimum number of inlayers for segmentation
+  int min_number_of_inliers_;
 
   //! clipping boundary
   float xmin_;

@@ -1,4 +1,9 @@
 eclipse.preferences.version=1
+environment/project/0.1210561454/VERBOSE/delimiter=\:
+environment/project/0.1210561454/VERBOSE/operation=append
+environment/project/0.1210561454/VERBOSE/value=1
+environment/project/0.1210561454/append=true
+environment/project/0.1210561454/appendContributed=true
 environment/project/cdt.managedbuild.toolchain.gnu.base.346027051/VERBOSE/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.base.346027051/VERBOSE/operation=append
 environment/project/cdt.managedbuild.toolchain.gnu.base.346027051/VERBOSE/value=1

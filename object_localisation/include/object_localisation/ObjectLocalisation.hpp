@@ -46,6 +46,11 @@ class ObjectLocalisation
    */
   void publish(pcl::PointCloud<pcl::PointXYZRGB>& cloud);
 
+  /*!
+   * publish message to topic
+   */
+  double computeCloudResolution (const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud);
+
  private:
 
   //! ROS nodehandle.

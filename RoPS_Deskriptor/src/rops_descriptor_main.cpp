@@ -140,7 +140,7 @@ int main (int argc, char** argv)
     }
 
   // Parameters for RoPS-Feature.
-  float relative_radius = 25;
+  float relative_radius = 24;
   bool crops = true;
   float mesh_resolution = 0.0017674;
 

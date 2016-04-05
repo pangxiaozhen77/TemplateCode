@@ -31,6 +31,14 @@ include_directories(
 )
 
 
-add_executable(object_localisation_node src/object_localisation_node.cpp src/ObjectLocalisation.cpp src/filtering.cpp src/greedy_projection.cpp)
+add_executable(
+	object_localisation_node 
+		src/object_localisation_node.cpp 
+		src/ObjectLocalisation.cpp 
+		src/filtering.cpp 
+		src/meshing.cpp 
+		src/keypoint.cpp
+)
+
 target_link_libraries(object_localisation_node ${catkin_LIBRARIES})
 add_dependencies(object_localisation_node object_localisation_gencpp)

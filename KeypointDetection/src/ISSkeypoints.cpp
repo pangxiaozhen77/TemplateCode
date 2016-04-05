@@ -65,8 +65,8 @@ main (int argc, char** argv)
   double iss_salient_radius_;
   double iss_non_max_radius_;
   double iss_border_radius_;
-  double iss_gamma_21_ (0.8);
-  double iss_gamma_32_ (0.8);
+  double iss_gamma_21_ (0.9);
+  double iss_gamma_32_ (0.9);
   double iss_min_neighbors_ (5);
   int iss_threads_ (4);
 

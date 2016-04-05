@@ -79,7 +79,7 @@ main (int argc, char** argv)
   gp3.setSearchRadius (0.025);
 
   // Set typical values for the parameters
-  gp3.setMu (1.5);
+  gp3.setMu (1.6);
   gp3.setMaximumNearestNeighbors (50);
   gp3.setMaximumSurfaceAngle(M_PI/4); // 45 degrees
   gp3.setMinimumAngle(5*M_PI/180); // 10 degrees
@@ -102,8 +102,6 @@ main (int argc, char** argv)
   // Save file
   pcl::io::savePLYFile (scene + "_Mesh.ply", triangles);
   std::cout << "Mesh is saved" << std::endl;
-
-
 
   // Finish
   return (0);

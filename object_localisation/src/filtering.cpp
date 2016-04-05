@@ -27,6 +27,7 @@ filtering::filtering()
        cloud_vector_(),
        z_threshold_(0.02),
        planarSegmentationTolerance_(0.02),
+       min_number_of_inliers_(1),
        xmin_(-1),
        xmax_(1),
        ymin_(-1),
@@ -40,8 +41,7 @@ filtering::~filtering()
 {
 }
 
-
-bool filtering::getPreprocessedCloud(pcl::PointCloud<PointType>::Ptr preprocessed_cloud_ptr){
+bool filtering::compute(pcl::PointCloud<PointType>::Ptr preprocessed_cloud_ptr){
 if(number_of_average_clouds_ + number_of_median_clouds_ > cloud_vector_.size()){
   std::cout << "There are too few clouds in the input vector, for these filter parameters!" << std::endl;
       return false;
@@ -56,53 +56,6 @@ if(!averageFilter(*preprocessed_cloud_ptr))
 if(!planarSegmentation(preprocessed_cloud_ptr))
   std::cout << "Couldn't find a plane!" << std::endl;
 
-  return true;
-}
-
-
-bool filtering::setNumberOfAverageClouds(int number_of_average_clouds){
-  number_of_average_clouds_ = number_of_average_clouds;
-  return true;
-}
-
-
-bool filtering::setNumberOfMedianClouds(int number_of_median_clouds){
-  if (number_of_median_clouds % 2 == 0){
-    std::cout << "ERROR: must input an odd number of clouds" << std::endl;
-    return false;
-  }
-  number_of_median_clouds_ = number_of_median_clouds;
-  return true;
-}
-
-bool filtering::setInputClouds(std::vector <pcl::PointCloud <pcl::PointXYZRGB> > cloud_vector){
-  cloud_vector_ = cloud_vector;
-  return true;
-}
-
-bool filtering::setClippingBoundaries(std::vector<float> boundaries){
-  if (boundaries.size()!=6){
-    std::cout << "Error: Wrong number of boundary values." << std::endl;
-    return false;
-  }
-
-  xmin_ = boundaries[0];
-  xmax_ = boundaries[1];
-  ymin_ = boundaries[2];
-  ymax_ = boundaries[3];
-  zmin_ = boundaries[4];
-  zmax_ = boundaries[5];
-
-  return true;
-}
-
-bool filtering::setZThreshold(float z_threshold){
-  z_threshold_ = z_threshold;
-  return true;
-}
-
-bool filtering::setPlanarSegmentationTolerance(float planarSegmentationTolerance){
-  planarSegmentationTolerance_ = planarSegmentationTolerance;
   return true;
 }
 
@@ -135,7 +88,6 @@ bool filtering::medianFilter(pcl::PointCloud<PointType>& median_cloud){
     }
   }
   median_cloud = cloud_vector_[0];
-
 
   std::cout << "Took median from " << number_of_median_clouds_ << " clouds." << std::endl;
 
@@ -221,42 +173,87 @@ bool filtering::planarSegmentation(pcl::PointCloud<PointType>::Ptr preprocessed_
   seg.setInputCloud (preprocessed_cloud_ptr);
   seg.segment (*inliers, *coefficients);
 
-
-  if (inliers->indices.size () == 0)
+  if (inliers->indices.size () < min_number_of_inliers_)
   {
-    PCL_ERROR ("Could not estimate a planar model for the given dataset.");
-    return (-1);
+    std::cout << "Could not find a plane with more than " << min_number_of_inliers_ << " inliers." << std::endl;
   }
-
-//  std::cerr << "Model coefficients: " << coefficients->values[0] << " "
-//                                      << coefficients->values[1] << " "
-//                                      << coefficients->values[2] << " "
-//                                      << coefficients->values[3] << std::endl;
-//
-//  std::cerr << "Model inliers: " << inliers->indices.size () << std::endl;
-
-  //Move inlayers to zero
-  for (int i = 0; i < inliers->indices.size(); i++)
+  else
   {
-    preprocessed_cloud_ptr->points[inliers->indices[i]].x = 0;
-    preprocessed_cloud_ptr->points[inliers->indices[i]].y = 0;
-    preprocessed_cloud_ptr->points[inliers->indices[i]].z = 0;
+      //Move inliers to zero
+      for (int i = 0; i < inliers->indices.size(); i++)
+      {
+        preprocessed_cloud_ptr->points[inliers->indices[i]].x = 0;
+        preprocessed_cloud_ptr->points[inliers->indices[i]].y = 0;
+        preprocessed_cloud_ptr->points[inliers->indices[i]].z = 0;
+      }
+
+      //Remove inliers from cloud
+      pcl::PointCloud<PointType>::Ptr segmentedCloud (new pcl::PointCloud<PointType>);
+      for (int i_point = 0; i_point < preprocessed_cloud_ptr->size(); i_point++)
+      {
+        if (preprocessed_cloud_ptr->points[i_point].z != 0)
+          segmentedCloud->push_back(preprocessed_cloud_ptr->points[i_point]);
+      }
+      preprocessed_cloud_ptr->points = segmentedCloud->points;
+      preprocessed_cloud_ptr->width = segmentedCloud->width;
+      preprocessed_cloud_ptr->height = segmentedCloud->height;
+
+      std::cout << "Removed " << inliers->indices.size() << " points as part of a plane." << std::endl;
   }
-
-  pcl::PointCloud<PointType>::Ptr segmentedCloud (new pcl::PointCloud<PointType>);
-  //Remove inlayers from cloud
-  for (int i_point = 0; i_point < preprocessed_cloud_ptr->size(); i_point++)
-  {
-    if (preprocessed_cloud_ptr->points[i_point].z != 0)
-      segmentedCloud->push_back(preprocessed_cloud_ptr->points[i_point]);
-  }
-  preprocessed_cloud_ptr->points = segmentedCloud->points;
-  preprocessed_cloud_ptr->width = segmentedCloud->width;
-  preprocessed_cloud_ptr->height = segmentedCloud->height;
-
-
-  std::cout << "Removed " << inliers->indices.size() << " points as part of a plane." << std::endl;
 
   return true;
 }
+
+
+bool filtering::setNumberOfAverageClouds(int number_of_average_clouds){
+  number_of_average_clouds_ = number_of_average_clouds;
+  return true;
+}
+
+
+bool filtering::setNumberOfMedianClouds(int number_of_median_clouds){
+  if (number_of_median_clouds % 2 == 0){
+    std::cout << "ERROR: must input an odd number of clouds" << std::endl;
+    return false;
+  }
+  number_of_median_clouds_ = number_of_median_clouds;
+  return true;
+}
+
+bool filtering::setInputClouds(std::vector <pcl::PointCloud <pcl::PointXYZRGB> > cloud_vector){
+  cloud_vector_ = cloud_vector;
+  return true;
+}
+
+bool filtering::setClippingBoundaries(std::vector<float> boundaries){
+  if (boundaries.size()!=6){
+    std::cout << "Error: Wrong number of boundary values." << std::endl;
+    return false;
+  }
+
+  xmin_ = boundaries[0];
+  xmax_ = boundaries[1];
+  ymin_ = boundaries[2];
+  ymax_ = boundaries[3];
+  zmin_ = boundaries[4];
+  zmax_ = boundaries[5];
+
+  return true;
+}
+
+bool filtering::setZThreshold(float z_threshold){
+  z_threshold_ = z_threshold;
+  return true;
+}
+
+bool filtering::setPlanarSegmentationTolerance(float planarSegmentationTolerance){
+  planarSegmentationTolerance_ = planarSegmentationTolerance;
+  return true;
+}
+
+bool filtering::setMinNumberOfInliers(int min_number_of_inliers){
+  min_number_of_inliers_ = min_number_of_inliers;
+  return true;
+}
+
 } /* namespace */
