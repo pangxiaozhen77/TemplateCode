@@ -24,12 +24,10 @@ catkin_package(
   DEPENDS system_lib
 )
 
-
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
 )
-
 
 add_executable(
 	object_localisation_node 
@@ -38,6 +36,8 @@ add_executable(
 		src/filtering.cpp 
 		src/meshing.cpp 
 		src/keypoint.cpp
+		src/feature2.hpp 
+		src/rops_estimation.hpp
 )
 
 target_link_libraries(object_localisation_node ${catkin_LIBRARIES})

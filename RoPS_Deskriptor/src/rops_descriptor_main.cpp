@@ -108,8 +108,6 @@ int main (int argc, char** argv)
   int sizek  = widthk * heightk;
   std::cout << "Loaded " << sizek << " keypoints." << std::endl;
 
-
-
   // defining indices
   pcl::PointIndicesPtr indices = boost::shared_ptr <pcl::PointIndices> (new pcl::PointIndices ());
   for (int k = 0; k < sizek; k++)

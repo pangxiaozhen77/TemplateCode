@@ -18,6 +18,7 @@
 #include "object_localisation/meshing.hpp"
 #include "object_localisation/keypoint.hpp"
 #include "object_localisation/ObjectLocalisation.hpp"
+#include "object_localisation/rops_estimation.h"
 
 std::stack<clock_t> tictoc_stack;
 
@@ -38,9 +39,13 @@ using namespace point_cloud_filtering;
 using namespace point_cloud_meshing;
 using namespace point_cloud_keypoint;
 
+// Register the Histogram Type of fixed size. (for file saving only)
+POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::Histogram<135>,(float[135], histogram, histogram));
+
 namespace object_localisation {
 
 std::vector <pcl::PointCloud <pcl::PointXYZRGB> > cloud_vector;
+
 
 void saveCloud(const sensor_msgs::PointCloud2& cloud){
   pcl::PointCloud<pcl::PointXYZRGB> new_cloud;
@@ -59,12 +64,12 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
     float z_threshold = 0.02;
     float planarSegmentationTolerance = 0.02;
     int min_number_of_inliers = 30000;
-    float xmin = -0.15;
-    float xmax = 0.5;
-    float ymin = -0.5;
-    float ymax = 0.5;
-    float zmin = 0.5;
-    float zmax = 2;
+    float xmin = -0.1;
+    float xmax = 0.3;
+    float ymin = -0.25;
+    float ymax = 0.25;
+    float zmin = 0.8;
+    float zmax = 1;
     ros::Rate r(60);
 
   //Meshing Parameters
@@ -87,7 +92,12 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
     double min_neighbors = 5;
     int threads = 4;
 
-  //Building boundary vector
+  // Parameters for RoPS-Feature.
+    float relative_radius = 25;
+    bool crops = true;
+
+
+  //DO NOT MODIFY! Parameter recalculation
   std::vector<float> boundaries;
   boundaries.push_back(xmin);
   boundaries.push_back(xmax);
@@ -95,6 +105,8 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
   boundaries.push_back(ymax);
   boundaries.push_back(zmin);
   boundaries.push_back(zmax);
+  unsigned int number_of_partition_bins = 5;
+  unsigned int number_of_rotations = 3;
 
   // Timer on
   tic();
@@ -127,11 +139,12 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
   filtering.setPlanarSegmentationTolerance(planarSegmentationTolerance);
   filtering.setMinNumberOfInliers(min_number_of_inliers);
   filtering.compute(preprocessed_cloud_ptr);
+  unsigned int preprocessed_size = preprocessed_cloud_ptr->size();
   std::cout << "Cloud is filtered, segmented and clipped." << std::endl;
 
   // computing cloud resolution
-  double model_resolution = computeCloudResolution(preprocessed_cloud_ptr);
-  std::cout << "Model resolution is " << model_resolution << " meters." << std::endl;
+  double cloud_resolution = computeCloudResolution(preprocessed_cloud_ptr);
+  std::cout << "Cloud resolution is " << cloud_resolution << " meters." << std::endl;
 
   // Building Mesh
   pcl::PolygonMesh::Ptr triangles (new pcl::PolygonMesh);
@@ -149,10 +162,10 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
   std::cout << "Mesh is calculated." << std::endl;
 
   // Keypoint Detection
-  pcl::PointCloud<pcl::PointXYZRGB> keypoint_cloud;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr keypoint_cloud_ptr (new pcl::PointCloud<pcl::PointXYZRGB>);
   keypoint keypoint;
 
-  keypoint.setModelResolution(model_resolution);
+  keypoint.setModelResolution(cloud_resolution);
   keypoint.setSalientRadius (salient_radius);
   keypoint.setNonMaxRadius (non_max_radius);
   keypoint.setNormalRadius (normal_radius);
@@ -162,8 +175,30 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
   keypoint.setMinNeighbors (min_neighbors);
   keypoint.setThreads (threads);
   keypoint.setInputCloud (preprocessed_cloud_ptr);
-  keypoint.compute (keypoint_cloud);
-  std::cout << keypoint_cloud.size() << " keypoints are detected." << std::endl;
+  keypoint.compute (*keypoint_cloud_ptr);
+  unsigned int keypoint_size= keypoint_cloud_ptr->size();
+  std::cout << keypoint_cloud_ptr->size() << " keypoints are detected." << std::endl;
+
+  // RoPS Feature Estimation
+  pcl::search::KdTree<pcl::PointXYZRGB>::Ptr search_method (new pcl::search::KdTree<pcl::PointXYZRGB>);
+  pcl::PointCloud<pcl::Histogram <135> >::Ptr histograms (new pcl::PointCloud <pcl::Histogram <135> > ());
+  pcl::PointCloud<pcl::ReferenceFrame>::Ptr LRFs (new pcl::PointCloud <pcl::ReferenceFrame> ());
+  std::vector<bool>* keypoints (new std::vector<bool> ());
+  pcl::ROPSEstimation <pcl::PointXYZRGB, pcl::Histogram <135> > feature_estimator;
+
+  search_method->setInputCloud (preprocessed_cloud_ptr);
+  feature_estimator.setSearchMethod (search_method);
+  feature_estimator.setSearchSurface (preprocessed_cloud_ptr);
+  feature_estimator.setInputCloud (keypoint_cloud_ptr);
+  feature_estimator.setTriangles (triangles->polygons);
+  feature_estimator.setRadiusSearch (relative_radius * cloud_resolution);
+  feature_estimator.setNumberOfPartitionBins (number_of_partition_bins);
+  feature_estimator.setNumberOfRotations (number_of_rotations);
+  feature_estimator.setSupportRadius (relative_radius * cloud_resolution);
+  feature_estimator.setCrops (crops);
+  feature_estimator.compute(*histograms, *LRFs, *keypoints);
+  std::cout << LRFs->size() <<" RoPSfeatures deskriptors and LRF's are estimated." << std::endl;
+
 
   // publish filtered cloud
   publish(*preprocessed_cloud_ptr);
@@ -174,7 +209,11 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
   // saving files
   pcl::io::savePCDFileASCII ("Object_Localisation_Files/PointCloud_preprocessed.pcd", *preprocessed_cloud_ptr);
   pcl::io::savePLYFile ("Object_Localisation_Files/PointCloud_mesh.ply", *triangles);
-  pcl::io::savePCDFileASCII ("Object_Localisation_Files/PointCloud_keypoints.pcd", keypoint_cloud);
+  pcl::io::savePCDFileASCII ("Object_Localisation_Files/PointCloud_keypoints.pcd", *keypoint_cloud_ptr);
+  pcl::io::savePCDFile  ("Object_Localisation_Files/PointCloud_RoPSHistograms.pcd", *histograms);
+  pcl::io::savePLYFile  ("Object_Localisation_Files/PointCloud_RoPSHistograms.ply", *histograms);
+  pcl::io::savePCDFile  ("Object_Localisation_Files/PointCloud_LRFs.pcd", *LRFs);
+  pcl::io::savePLYFile  ("Object_Localisation_Files/PointCloud_LRFs.ply", *LRFs);
   std::cout << "Files are saved" << std::endl;
 
   // shut down node
