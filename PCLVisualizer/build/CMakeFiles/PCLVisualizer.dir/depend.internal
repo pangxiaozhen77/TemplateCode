@@ -259,6 +259,11 @@ CMakeFiles/PCLVisualizer.dir/PCLVisualizer.cpp.o
  /usr/include/pcl-1.7/pcl/io/impl/pcd_io.hpp
  /usr/include/pcl-1.7/pcl/io/lzf.h
  /usr/include/pcl-1.7/pcl/io/pcd_io.h
+ /usr/include/pcl-1.7/pcl/io/ply/byte_order.h
+ /usr/include/pcl-1.7/pcl/io/ply/io_operators.h
+ /usr/include/pcl-1.7/pcl/io/ply/ply.h
+ /usr/include/pcl-1.7/pcl/io/ply/ply_parser.h
+ /usr/include/pcl-1.7/pcl/io/ply_io.h
  /usr/include/pcl-1.7/pcl/kdtree/flann.h
  /usr/include/pcl-1.7/pcl/kdtree/impl/kdtree_flann.hpp
  /usr/include/pcl-1.7/pcl/kdtree/kdtree.h

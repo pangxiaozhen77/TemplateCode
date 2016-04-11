@@ -7,6 +7,7 @@
 #include <pcl/common/common_headers.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/io/ply_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/console/parse.h>
 #include <pcl/point_types.h>
@@ -304,8 +305,11 @@ main (int argc, char** argv)
 
   if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (cloud_name_1, *point_cloud_ptr) == -1) //* load the file
         {
+    if (pcl::io::loadPLYFile<pcl::PointXYZRGB> (cloud_name_1, *point_cloud_ptr) == -1) //* load the file
+          {
           PCL_ERROR ("Couldn't read input file \n");
           return (-1);
+          }
         }
         std::cout << "Loaded "
                   << point_cloud_ptr->width * point_cloud_ptr->height
@@ -317,8 +321,11 @@ main (int argc, char** argv)
 
   if (pcl::io::loadPCDFile<pcl::PointXYZ> (cloud_name_1, *basic_cloud_ptr) == -1) //* load the file
         {
+    if (pcl::io::loadPLYFile<pcl::PointXYZ> (cloud_name_1, *basic_cloud_ptr) == -1) //* load the file
+          {
           PCL_ERROR ("Couldn't read input file \n");
           return (-1);
+          }
         }
         std::cout << "Loaded "
                   << basic_cloud_ptr->width * basic_cloud_ptr->height

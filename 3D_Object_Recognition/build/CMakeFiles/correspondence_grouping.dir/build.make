@@ -34,11 +34,14 @@ RM = /usr/bin/cmake -E remove -f
 # Escaping for special characters.
 EQUALS = =
 
+# The program to use to edit the cache.
+CMAKE_EDIT_COMMAND = /usr/bin/ccmake
+
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/yves/3D_Object_Recognition
+CMAKE_SOURCE_DIR = /home/yves/TemplateCode/3D_Object_Recognition
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/yves/3D_Object_Recognition/build
+CMAKE_BINARY_DIR = /home/yves/TemplateCode/3D_Object_Recognition/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/correspondence_grouping.dir/depend.make
@@ -51,17 +54,17 @@ include CMakeFiles/correspondence_grouping.dir/flags.make
 
 CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.o: CMakeFiles/correspondence_grouping.dir/flags.make
 CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.o: ../correspondence_grouping.cpp
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/yves/3D_Object_Recognition/build/CMakeFiles $(CMAKE_PROGRESS_1)
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/yves/TemplateCode/3D_Object_Recognition/build/CMakeFiles $(CMAKE_PROGRESS_1)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.o -c /home/yves/3D_Object_Recognition/correspondence_grouping.cpp
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.o -c /home/yves/TemplateCode/3D_Object_Recognition/correspondence_grouping.cpp
 
 CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/yves/3D_Object_Recognition/correspondence_grouping.cpp > CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.i
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/yves/TemplateCode/3D_Object_Recognition/correspondence_grouping.cpp > CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.i
 
 CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/yves/3D_Object_Recognition/correspondence_grouping.cpp -o CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.s
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/yves/TemplateCode/3D_Object_Recognition/correspondence_grouping.cpp -o CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.s
 
 CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.o.requires:
 .PHONY : CMakeFiles/correspondence_grouping.dir/correspondence_grouping.cpp.o.requires
@@ -198,6 +201,6 @@ CMakeFiles/correspondence_grouping.dir/clean:
 .PHONY : CMakeFiles/correspondence_grouping.dir/clean
 
 CMakeFiles/correspondence_grouping.dir/depend:
-	cd /home/yves/3D_Object_Recognition/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/yves/3D_Object_Recognition /home/yves/3D_Object_Recognition /home/yves/3D_Object_Recognition/build /home/yves/3D_Object_Recognition/build /home/yves/3D_Object_Recognition/build/CMakeFiles/correspondence_grouping.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/yves/TemplateCode/3D_Object_Recognition/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/yves/TemplateCode/3D_Object_Recognition /home/yves/TemplateCode/3D_Object_Recognition /home/yves/TemplateCode/3D_Object_Recognition/build /home/yves/TemplateCode/3D_Object_Recognition/build /home/yves/TemplateCode/3D_Object_Recognition/build/CMakeFiles/correspondence_grouping.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/correspondence_grouping.dir/depend
 

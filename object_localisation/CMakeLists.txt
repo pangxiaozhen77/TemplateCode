@@ -35,7 +35,7 @@ add_executable(
 		src/ObjectLocalisation.cpp 
 		src/filtering.cpp 
 		src/meshing.cpp 
-		src/keypoint.cpp
+#		src/keypoint.cpp
 		src/feature2.hpp 
 		src/rops_estimation.hpp
 )

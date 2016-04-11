@@ -17,6 +17,8 @@
 //PCL
 #include <pcl/point_types.h>
 #include <pcl/common/common_headers.h>
+#include <pcl/PolygonMesh.h>
+#include <pcl/registration/correspondence_estimation.h>
 
 
 typedef pcl::PointXYZRGB PointType;
@@ -49,15 +51,102 @@ class ObjectLocalisation
   /*!
    * publish message to topic
    */
-  double computeCloudResolution (const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud);
+
+  bool preprocess();
+
+  bool computeCloudResolution (const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud);
+
+  bool computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud);
+
+  bool computeKeypoints(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud);
+
+  bool computeMesh(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud);
+
+  bool computeROPSDescriptor();
+
+  bool computeFPFHDescriptor();
+
+  bool FPFHcorrespondence();
+
+  bool loadFPFHSignature(int model_number);
 
  private:
+
 
   //! ROS nodehandle.
   ros::NodeHandle nodeHandle_;
 
   //! Grid map publisher.
   ros::Publisher publisher_;
+
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr preprocessed_cloud_ptr_;
+
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr keypoint_cloud_ptr_;
+
+  pcl::PointCloud<pcl::Normal>::Ptr normals_;
+
+  std::vector <pcl::PointCloud <pcl::PointXYZRGB> > cloud_vector_;
+
+  pcl::PolygonMesh::Ptr triangles_;
+
+  pcl::PointCloud<pcl::Histogram <135> >::Ptr RoPS_histograms_;
+
+  pcl::PointCloud<pcl::ReferenceFrame>::Ptr RoPS_LRFs_;
+
+  pcl::PointCloud<pcl::FPFHSignature33>::Ptr FPFH_signature_scene_;
+
+  pcl::PointCloud<pcl::FPFHSignature33>::Ptr FPFH_signature_model_;
+
+  pcl::CorrespondencesPtr model_scene_correspondence_;
+
+
+  unsigned int preprocessed_size_;
+
+  unsigned int keypoints_size_;
+
+  double cloud_resolution_;
+
+  double sqr_correspondence_distance_;
+
+  //Filtering Parameters
+  int number_of_average_clouds_;
+  int number_of_median_clouds_;
+  float z_threshold_;
+  float planarSegmentationTolerance_;
+  int min_number_of_inliers_;
+  float xmin_;
+  float xmax_;
+  float ymin_;
+  float ymax_;
+  float zmin_;
+  float zmax_;
+
+//Meshing Parameters
+  int number_of_neighbors_normal_;
+  float max_edge_length_;
+  float mu_;
+  int max_nearest_neighbors_mesh_;
+  float max_surface_angle_;
+  float  min_angle_;
+  float  max_angle_;
+  bool  normal_consistency_;
+
+//Keypoint Detection Parameters
+  double normal_radius_;
+  double salient_radius_;
+  double border_radius_;
+  double non_max_radius_;
+  double gamma_21_;
+  double gamma_32_;
+  double min_neighbors_;
+  int threads_;
+
+// Parameters for RoPS-Descriptor.
+  float RoPS_radius_;
+  bool crops_;
+
+// Parameters for FPFH-Descriptor
+  double FPFH_radius_;
 
 };
 

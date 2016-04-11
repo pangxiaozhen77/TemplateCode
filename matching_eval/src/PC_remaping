@@ -1,0 +1,44 @@
+pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_XYZ (new pcl::PointCloud<pcl::PointXYZ> ());
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_RGB (new pcl::PointCloud<pcl::PointXYZ> ());
+ 
+
+if (pcl::io::loadPCDFile<pcl::PointXYZ> (argv[1], *cloud_XYZ) == -1)
+    {
+      PCL_ERROR ("Couldn't read input file base \n");
+      return (-1);
+    }
+
+  int height = cloud_XYZ->height;
+  int width = cloud_XYZ->width;
+  int size  = width * height;
+
+  std::cout << "Loaded " << width * height << " data points from input file. " << std::endl;
+  std::cout << "width = " << width << "    height = " << height << std::endl;
+
+  //load cloud XYZ and RGB in the corresponding subclouds
+  pcl::PointCloud<pcl::PointXYZRGB> temp_cloud = *cloud;
+  pcl::PointCloud<pcl::PointXYZ> temp_cloud_RGB = *cloud_XYZ;
+  pcl::PointXYZ point_cloud_RGB = temp_cloud_RGB(0,2);
+
+  std::cout << "Temp clouds initialized." << std::endl;
+  for (int i = 0; i < height; i++)
+  {
+    for (int j = 0; j < width; j++)
+    {
+      pcl::PointXYZRGB point_cloud = temp_cloud(i,j);
+      std::cout << 1 << std::endl;
+
+      point_cloud_RGB.x = (float)point_cloud.r*0.001;
+      point_cloud_RGB.y = (float)point_cloud.g*0.001;
+      point_cloud_RGB.z = (float)point_cloud.b*0.001;
+
+      std::cout << "RGB remaped." << std::endl;
+      std::cout << "XYZ-RGB is : " << point_cloud_RGB << std::endl;
+      temp_cloud_RGB(i,j) = point_cloud_RGB;
+      std::cout << "Point (" << i <<","<< j << ") is remaped."<<std::endl;
+    }
+  }
+  *cloud_RGB = temp_cloud_RGB;
+  std::cout << "Clouds are remapped."<<std::endl;
+
+

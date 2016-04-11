@@ -258,6 +258,11 @@ CMakeFiles/PCLVisualizer.dir/PCLVisualizer.cpp.o: /usr/include/pcl-1.7/pcl/io/fi
 CMakeFiles/PCLVisualizer.dir/PCLVisualizer.cpp.o: /usr/include/pcl-1.7/pcl/io/impl/pcd_io.hpp
 CMakeFiles/PCLVisualizer.dir/PCLVisualizer.cpp.o: /usr/include/pcl-1.7/pcl/io/lzf.h
 CMakeFiles/PCLVisualizer.dir/PCLVisualizer.cpp.o: /usr/include/pcl-1.7/pcl/io/pcd_io.h
+CMakeFiles/PCLVisualizer.dir/PCLVisualizer.cpp.o: /usr/include/pcl-1.7/pcl/io/ply/byte_order.h
+CMakeFiles/PCLVisualizer.dir/PCLVisualizer.cpp.o: /usr/include/pcl-1.7/pcl/io/ply/io_operators.h
+CMakeFiles/PCLVisualizer.dir/PCLVisualizer.cpp.o: /usr/include/pcl-1.7/pcl/io/ply/ply.h
+CMakeFiles/PCLVisualizer.dir/PCLVisualizer.cpp.o: /usr/include/pcl-1.7/pcl/io/ply/ply_parser.h
+CMakeFiles/PCLVisualizer.dir/PCLVisualizer.cpp.o: /usr/include/pcl-1.7/pcl/io/ply_io.h
 CMakeFiles/PCLVisualizer.dir/PCLVisualizer.cpp.o: /usr/include/pcl-1.7/pcl/kdtree/flann.h
 CMakeFiles/PCLVisualizer.dir/PCLVisualizer.cpp.o: /usr/include/pcl-1.7/pcl/kdtree/impl/kdtree_flann.hpp
 CMakeFiles/PCLVisualizer.dir/PCLVisualizer.cpp.o: /usr/include/pcl-1.7/pcl/kdtree/kdtree.h

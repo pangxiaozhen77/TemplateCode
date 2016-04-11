@@ -13,10 +13,18 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/conversions.h>
+#include <pcl/features/fpfh.h>
+#include <pcl/recognition/cg/hough_3d.h>
+#include <pcl/common/transforms.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/features/normal_3d_omp.h>
+#include <pcl/keypoints/iss_3d.h>
+#include <ros/package.h>
+#include <string>
+
 
 #include "object_localisation/filtering.hpp"
 #include "object_localisation/meshing.hpp"
-#include "object_localisation/keypoint.hpp"
 #include "object_localisation/ObjectLocalisation.hpp"
 #include "object_localisation/rops_estimation.h"
 
@@ -37,7 +45,6 @@ void toc()
 
 using namespace point_cloud_filtering;
 using namespace point_cloud_meshing;
-using namespace point_cloud_keypoint;
 
 // Register the Histogram Type of fixed size. (for file saving only)
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::Histogram<135>,(float[135], histogram, histogram));
@@ -45,7 +52,6 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::Histogram<135>,(float[135], histogram, h
 namespace object_localisation {
 
 std::vector <pcl::PointCloud <pcl::PointXYZRGB> > cloud_vector;
-
 
 void saveCloud(const sensor_msgs::PointCloud2& cloud){
   pcl::PointCloud<pcl::PointXYZRGB> new_cloud;
@@ -55,59 +61,63 @@ void saveCloud(const sensor_msgs::PointCloud2& cloud){
 
 
 ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
-    : nodeHandle_(nodeHandle)
+    : nodeHandle_(nodeHandle),
+      preprocessed_size_(0),
+      keypoints_size_(0),
+      preprocessed_cloud_ptr_(new pcl::PointCloud<pcl::PointXYZRGB> ()),
+      keypoint_cloud_ptr_(new pcl::PointCloud<pcl::PointXYZRGB> ()),
+      normals_(new pcl::PointCloud<pcl::Normal>()),
+      triangles_(new pcl::PolygonMesh()),
+      cloud_vector_(),
+      RoPS_histograms_(new pcl::PointCloud<pcl::Histogram <135> >()),
+      RoPS_LRFs_(new pcl::PointCloud<pcl::ReferenceFrame>()),
+      FPFH_signature_scene_(new pcl::PointCloud<pcl::FPFHSignature33>()),
+      FPFH_signature_model_(new pcl::PointCloud<pcl::FPFHSignature33>()),
+      model_scene_correspondence_(new pcl::Correspondences()),
+
+      //Filtering Parameters
+        number_of_average_clouds_ (15),
+        number_of_median_clouds_ (5),
+        z_threshold_ (0.005),
+        planarSegmentationTolerance_ (0.02),
+        min_number_of_inliers_ (30000),
+        xmin_ (-0.5),
+        xmax_ (0.5),
+        ymin_ (-0.5),
+        ymax_ (0.5),
+        zmin_ (0.6),
+        zmax_ (2),
+
+      //Meshing Parameters
+        number_of_neighbors_normal_ (30),
+        max_edge_length_ (0.03),
+        mu_ (1.5),
+        max_nearest_neighbors_mesh_ (50),
+        max_surface_angle_ (M_PI/4),
+        min_angle_ (5*M_PI/180),
+        max_angle_ (160*M_PI/180),
+        normal_consistency_ (false),
+
+      //Keypoint Detection Parameters
+        normal_radius_ (0.008),
+        salient_radius_ (0.015),
+        border_radius_ (salient_radius_ *1.1),
+        non_max_radius_ (salient_radius_*0.5),
+        gamma_21_ (0.975),
+        gamma_32_ (0.975),
+        min_neighbors_ (5),
+        threads_ (4),
+
+      // Parameters for FPFH-Descriptor
+        FPFH_radius_ (0.016),
+
+      // Parameters for RoPS-Feature.
+        RoPS_radius_ (0.03),
+        crops_ (true),
+
+      // Correspondence Search
+        sqr_correspondence_distance_(50)
 {
-
-  //Filtering Parameters
-    int number_of_average_clouds = 15;
-    int number_of_median_clouds = 5;
-    float z_threshold = 0.02;
-    float planarSegmentationTolerance = 0.02;
-    int min_number_of_inliers = 30000;
-    float xmin = -0.1;
-    float xmax = 0.3;
-    float ymin = -0.25;
-    float ymax = 0.25;
-    float zmin = 0.8;
-    float zmax = 1;
-    ros::Rate r(60);
-
-  //Meshing Parameters
-    int number_of_neighbors_normal = 30;
-    float max_edge_length = 0.03;
-    float mu = 1.5;
-    int max_nearest_neighbors_mesh = 50;
-    float max_surface_angle = M_PI/4;
-    float  min_angle = 5*M_PI/180;
-    float  max_angle = 160*M_PI/180;
-    bool  normal_consistency = false;
-
-  //Keypoint Detection Parameters
-    double normal_radius = 4;
-    double salient_radius = 6;
-    double border_radius = salient_radius + 1;
-    double non_max_radius = salient_radius -2;
-    double gamma_21 = 0.9;
-    double gamma_32 = 0.9;
-    double min_neighbors = 5;
-    int threads = 4;
-
-  // Parameters for RoPS-Feature.
-    float relative_radius = 25;
-    bool crops = true;
-
-
-  //DO NOT MODIFY! Parameter recalculation
-  std::vector<float> boundaries;
-  boundaries.push_back(xmin);
-  boundaries.push_back(xmax);
-  boundaries.push_back(ymin);
-  boundaries.push_back(ymax);
-  boundaries.push_back(zmin);
-  boundaries.push_back(zmax);
-  unsigned int number_of_partition_bins = 5;
-  unsigned int number_of_rotations = 3;
-
   // Timer on
   tic();
 
@@ -116,104 +126,72 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
   publisher_ = nodeHandle_.advertise<sensor_msgs::PointCloud2>("object_detection/preprocessedCloud", 1, true);
 
   //Sample clouds
-  while (cloud_vector.size() < number_of_average_clouds + number_of_median_clouds)
+  ros::Rate r(60);
+  while (cloud_vector.size() < number_of_average_clouds_ + number_of_median_clouds_)
   {
    ros::spinOnce();
    r.sleep();
   }
+  cloud_vector_ = cloud_vector;
 
   std::cout << "Clouds are sampled."
             << "  width = " << cloud_vector[0].width
             << "  height = " << cloud_vector[0].height
             << "  size = " << cloud_vector[0].size() << std::endl;
 
-  // Filtering
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr preprocessed_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB> ());
-  filtering filtering;
-
-  filtering.setNumberOfMedianClouds(number_of_median_clouds);
-  filtering.setNumberOfAverageClouds(number_of_average_clouds);
-  filtering.setInputClouds(cloud_vector);
-  filtering.setClippingBoundaries(boundaries);
-  filtering.setZThreshold(z_threshold);
-  filtering.setPlanarSegmentationTolerance(planarSegmentationTolerance);
-  filtering.setMinNumberOfInliers(min_number_of_inliers);
-  filtering.compute(preprocessed_cloud_ptr);
-  unsigned int preprocessed_size = preprocessed_cloud_ptr->size();
+  // Preprocessing (Filtering)
+  preprocess();
   std::cout << "Cloud is filtered, segmented and clipped." << std::endl;
 
   // computing cloud resolution
-  double cloud_resolution = computeCloudResolution(preprocessed_cloud_ptr);
-  std::cout << "Cloud resolution is " << cloud_resolution << " meters." << std::endl;
+//  computeCloudResolution(preprocessed_cloud_ptr_);
+//  std::cout << "Cloud resolution is " << cloud_resolution_ << " meters." << std::endl;
 
-  // Building Mesh
-  pcl::PolygonMesh::Ptr triangles (new pcl::PolygonMesh);
-  meshing meshing;
+  // computing normals
+  computeNormals(preprocessed_cloud_ptr_);
+  std::cout << "Normal are computed" << std::endl;
 
-  meshing.setInputCloud(preprocessed_cloud_ptr);
-  meshing.setMaxAngle(max_angle);
-  meshing.setMinAngle(min_angle);
-  meshing.setMaxEdgeLength(max_edge_length);
-  meshing.setMu(mu);
-  meshing.setNumberOfNeighborsNormal(number_of_neighbors_normal);
-  meshing.setMaxSurfaceAngle(max_surface_angle);
-  meshing.setNormalConsistency(normal_consistency);
-  meshing.compute(*triangles);
-  std::cout << "Mesh is calculated." << std::endl;
+//  // Building Mesh
+//  computeMesh(preprocessed_cloud_ptr_);
+//  std::cout << "Mesh is calculated." << std::endl;
 
   // Keypoint Detection
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr keypoint_cloud_ptr (new pcl::PointCloud<pcl::PointXYZRGB>);
-  keypoint keypoint;
+  computeKeypoints(preprocessed_cloud_ptr_);
+  std::cout << keypoints_size_ << " keypoints are detected." << std::endl;
 
-  keypoint.setModelResolution(cloud_resolution);
-  keypoint.setSalientRadius (salient_radius);
-  keypoint.setNonMaxRadius (non_max_radius);
-  keypoint.setNormalRadius (normal_radius);
-  keypoint.setBorderRadius (border_radius);
-  keypoint.setGamma21 (gamma_21);
-  keypoint.setGamma32 (gamma_32);
-  keypoint.setMinNeighbors (min_neighbors);
-  keypoint.setThreads (threads);
-  keypoint.setInputCloud (preprocessed_cloud_ptr);
-  keypoint.compute (*keypoint_cloud_ptr);
-  unsigned int keypoint_size= keypoint_cloud_ptr->size();
-  std::cout << keypoint_cloud_ptr->size() << " keypoints are detected." << std::endl;
+//  // RoPS Descriptor Estimation
+//  computeROPSDescriptor();
+//  std::cout << RoPS_LRFs_->size() <<" RoPSfeatures deskriptors and LRF's are estimated." << std::endl;
 
-  // RoPS Feature Estimation
-  pcl::search::KdTree<pcl::PointXYZRGB>::Ptr search_method (new pcl::search::KdTree<pcl::PointXYZRGB>);
-  pcl::PointCloud<pcl::Histogram <135> >::Ptr histograms (new pcl::PointCloud <pcl::Histogram <135> > ());
-  pcl::PointCloud<pcl::ReferenceFrame>::Ptr LRFs (new pcl::PointCloud <pcl::ReferenceFrame> ());
-  std::vector<bool>* keypoints (new std::vector<bool> ());
-  pcl::ROPSEstimation <pcl::PointXYZRGB, pcl::Histogram <135> > feature_estimator;
+  //Compute FPFH Signature
+  computeFPFHDescriptor();
+  std::cout << "FPFH signatures are calculated." << std::endl;
 
-  search_method->setInputCloud (preprocessed_cloud_ptr);
-  feature_estimator.setSearchMethod (search_method);
-  feature_estimator.setSearchSurface (preprocessed_cloud_ptr);
-  feature_estimator.setInputCloud (keypoint_cloud_ptr);
-  feature_estimator.setTriangles (triangles->polygons);
-  feature_estimator.setRadiusSearch (relative_radius * cloud_resolution);
-  feature_estimator.setNumberOfPartitionBins (number_of_partition_bins);
-  feature_estimator.setNumberOfRotations (number_of_rotations);
-  feature_estimator.setSupportRadius (relative_radius * cloud_resolution);
-  feature_estimator.setCrops (crops);
-  feature_estimator.compute(*histograms, *LRFs, *keypoints);
-  std::cout << LRFs->size() <<" RoPSfeatures deskriptors and LRF's are estimated." << std::endl;
+  //temporary
+  //FPFH_signature_model_=FPFH_signature_scene_;
+  loadFPFHSignature(1);
+  std::cout << "loaded " << FPFH_signature_model_->size() << "signatures" << std::endl;
 
+  //Correspondence Search
+  FPFHcorrespondence();
+  std::cout << model_scene_correspondence_->size()<< " correspondences are found." << std::endl;
 
   // publish filtered cloud
-  publish(*preprocessed_cloud_ptr);
+  publish(*preprocessed_cloud_ptr_);
 
   //Timer off
   toc();
 
   // saving files
-  pcl::io::savePCDFileASCII ("Object_Localisation_Files/PointCloud_preprocessed.pcd", *preprocessed_cloud_ptr);
-  pcl::io::savePLYFile ("Object_Localisation_Files/PointCloud_mesh.ply", *triangles);
-  pcl::io::savePCDFileASCII ("Object_Localisation_Files/PointCloud_keypoints.pcd", *keypoint_cloud_ptr);
-  pcl::io::savePCDFile  ("Object_Localisation_Files/PointCloud_RoPSHistograms.pcd", *histograms);
-  pcl::io::savePLYFile  ("Object_Localisation_Files/PointCloud_RoPSHistograms.ply", *histograms);
-  pcl::io::savePCDFile  ("Object_Localisation_Files/PointCloud_LRFs.pcd", *LRFs);
-  pcl::io::savePLYFile  ("Object_Localisation_Files/PointCloud_LRFs.ply", *LRFs);
+  pcl::io::savePCDFileASCII ("PointCloud_preprocessed.pcd", *preprocessed_cloud_ptr_);
+  pcl::io::savePCDFileASCII ("PointCloud_keypoints.pcd", *keypoint_cloud_ptr_);
+  //pcl::io::savePCDFile  ("Object_Localisation_Files/PointCloud_RoPSHistograms.pcd", *histograms);
+  //pcl::io::savePLYFile  ("Object_Localisation_Files/PointCloud_RoPSHistograms.ply", *histograms);
+  //pcl::io::savePCDFile  ("Object_Localisation_Files/PointCloud_LRFs.pcd", *LRFs);
+  //pcl::io::savePLYFile  ("Object_Localisation_Files/PointCloud_LRFs.ply", *LRFs);
+  //pcl::io::savePLYFile ("Object_Localisation_Files/PointCloud_mesh.ply", *triangles);
+  pcl::io::savePCDFile  ("FPFHSignature2.pcd", *FPFH_signature_scene_);
+  pcl::io::savePLYFile  ("FPFHSignature2.ply", *FPFH_signature_scene_);
   std::cout << "Files are saved" << std::endl;
 
   // shut down node
@@ -236,7 +214,7 @@ void ObjectLocalisation::publish(pcl::PointCloud<pcl::PointXYZRGB>& cloud)
   publisher_.publish(cloud_msg);
 }
 
-double ObjectLocalisation::computeCloudResolution (const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud)
+bool ObjectLocalisation::computeCloudResolution (const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud)
 {
   double res = 0.0;
   int n_points = 0;
@@ -264,7 +242,178 @@ double ObjectLocalisation::computeCloudResolution (const pcl::PointCloud<pcl::Po
   {
     res /= n_points;
   }
-  return res;
+  cloud_resolution_ = res;
+  return true;
   }
 
+bool ObjectLocalisation::computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud)
+{
+  pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> n;
+  pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB>);
+  tree->setInputCloud (cloud);
+  n.setInputCloud (cloud);
+  n.setSearchMethod (tree);
+  n.setRadiusSearch(normal_radius_);
+  n.compute (*normals_);
+  return true;
+}
+
+bool ObjectLocalisation::preprocess(){
+
+  //DO NOT MODIFY! Parameter recalculation
+  std::vector<float> boundaries;
+  boundaries.push_back(xmin_);
+  boundaries.push_back(xmax_);
+  boundaries.push_back(ymin_);
+  boundaries.push_back(ymax_);
+  boundaries.push_back(zmin_);
+  boundaries.push_back(zmax_);
+
+  filtering filtering;
+  filtering.setNumberOfMedianClouds(number_of_median_clouds_);
+  filtering.setNumberOfAverageClouds(number_of_average_clouds_);
+  filtering.setInputClouds(cloud_vector_);
+  filtering.setClippingBoundaries(boundaries);
+  filtering.setZThreshold(z_threshold_);
+  filtering.setPlanarSegmentationTolerance(planarSegmentationTolerance_);
+  filtering.setMinNumberOfInliers(min_number_of_inliers_);
+  filtering.compute(preprocessed_cloud_ptr_);
+  unsigned int preprocessed_size_ = preprocessed_cloud_ptr_->size();
+  return true;
+}
+
+bool ObjectLocalisation::computeKeypoints(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud){
+  pcl::ISSKeypoint3D<pcl::PointXYZRGB, pcl::PointXYZRGB> iss_detector;
+  pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
+
+  iss_detector.setSearchMethod (tree);
+  iss_detector.setSalientRadius (salient_radius_);
+  iss_detector.setNonMaxRadius (non_max_radius_);
+  iss_detector.setNormalRadius (normal_radius_);
+  iss_detector.setBorderRadius (border_radius_);
+  iss_detector.setThreshold21 (gamma_21_);
+  iss_detector.setThreshold32 (gamma_32_);
+  iss_detector.setMinNeighbors (min_neighbors_);
+  iss_detector.setNumberOfThreads (threads_);
+  iss_detector.setInputCloud (cloud);
+  iss_detector.compute (*keypoint_cloud_ptr_);
+  keypoints_size_ = keypoint_cloud_ptr_->size();
+
+  return true;
+
+}
+
+bool ObjectLocalisation::computeMesh(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud){
+    meshing meshing;
+    meshing.setInputCloud(preprocessed_cloud_ptr_);
+    meshing.setMaxAngle(max_angle_);
+    meshing.setMinAngle(min_angle_);
+    meshing.setMaxEdgeLength(max_edge_length_);
+    meshing.setMu(mu_);
+    meshing.setNumberOfNeighborsNormal(number_of_neighbors_normal_);
+    meshing.setMaxSurfaceAngle(max_surface_angle_);
+    meshing.setNormalConsistency(normal_consistency_);
+    meshing.compute(*triangles_);
+  return true;
+}
+
+bool ObjectLocalisation::computeROPSDescriptor(){
+    unsigned int number_of_partition_bins = 5;
+    unsigned int number_of_rotations = 3;
+
+    std::vector<bool>* keypoints (new std::vector<bool> ());
+    pcl::search::KdTree<pcl::PointXYZRGB>::Ptr search_method (new pcl::search::KdTree<pcl::PointXYZRGB>);
+    search_method->setInputCloud (preprocessed_cloud_ptr_);
+
+    pcl::ROPSEstimation <pcl::PointXYZRGB, pcl::Histogram <135> > feature_estimator;
+    feature_estimator.setSearchMethod (search_method);
+    feature_estimator.setSearchSurface (preprocessed_cloud_ptr_);
+    feature_estimator.setInputCloud (keypoint_cloud_ptr_);
+    feature_estimator.setTriangles (triangles_->polygons);
+    feature_estimator.setRadiusSearch (RoPS_radius_);
+    feature_estimator.setNumberOfPartitionBins (number_of_partition_bins);
+    feature_estimator.setNumberOfRotations (number_of_rotations);
+    feature_estimator.setSupportRadius (RoPS_radius_);
+    feature_estimator.setCrops (crops_);
+    feature_estimator.compute(*RoPS_histograms_, *RoPS_LRFs_, *keypoints);
+
+  return true;
+}
+
+bool ObjectLocalisation::computeFPFHDescriptor(){
+
+    pcl::FPFHEstimation<pcl::PointXYZRGB, pcl::Normal, pcl::FPFHSignature33> fpfh;
+    pcl::search::KdTree<pcl::PointXYZRGB>::Ptr search_method (new pcl::search::KdTree<pcl::PointXYZRGB>);
+    pcl::PointIndicesPtr indices = boost::shared_ptr <pcl::PointIndices> (new pcl::PointIndices ());
+
+    // defining indices
+    for (int k = 0; k < keypoints_size_; k++)
+    {
+      indices->indices.push_back (k);
+    }
+
+    fpfh.setSearchMethod(search_method);
+    fpfh.setIndices(indices);
+    fpfh.setInputCloud(keypoint_cloud_ptr_);
+    fpfh.setSearchSurface(preprocessed_cloud_ptr_);
+    fpfh.setInputNormals(normals_);
+    fpfh.setRadiusSearch(FPFH_radius_);
+    fpfh.compute (*FPFH_signature_scene_);
+
+  return true;
+}
+
+bool ObjectLocalisation::FPFHcorrespondence(){
+
+    pcl::KdTreeFLANN<pcl::FPFHSignature33 > match_search;
+
+    match_search.setInputCloud(FPFH_signature_model_);
+
+    for (size_t i = 0; i < FPFH_signature_scene_->size (); ++i)
+    {
+      std::vector<int> neigh_indices (1);
+      std::vector<float> neigh_sqr_dists (1);
+
+      if (!pcl::isFinite<pcl::FPFHSignature33> (FPFH_signature_scene_->at(i))) //skipping NaNs
+      {
+        continue;
+      }
+      int found_neighs = match_search.nearestKSearch (FPFH_signature_scene_->at (i), 1, neigh_indices, neigh_sqr_dists);
+      if(found_neighs == 1 && neigh_sqr_dists[0] < sqr_correspondence_distance_) //  add match only if the squared descriptor distance is less than 0.25 (SHOT descriptor distances are between 0 and 1 by design)
+      {
+        pcl::Correspondence corr (neigh_indices[0], static_cast<int> (i), neigh_sqr_dists[0]);
+        model_scene_correspondence_->push_back (corr);
+      }
+    }
+  return true;
+}
+
+bool ObjectLocalisation::loadFPFHSignature(int model_number){
+
+  // load vertices
+
+  std::ifstream FPFHSignature_file;
+  std::string path = ros::package::getPath("object_localisation") + "/models/FPFHSignature_1";
+  std::string file_name = path + ".ply";
+  std::cout << "loading:" << file_name << std::endl;
+  FPFHSignature_file.open (file_name.c_str(), std::ifstream::in);
+
+  for (std::string line; std::getline (FPFHSignature_file, line);)
+    {
+      pcl::FPFHSignature33 signature;
+      std::istringstream in (line);
+      unsigned int mark = 0;
+      float sign =0;
+      in >> mark;
+      if (mark == 33)
+      {
+        for (int i=0; i<33; i++){
+          in >> sign;
+          signature.histogram[i] = sign;
+        }
+        FPFH_signature_model_->push_back (signature);
+      }
+    }
+  return true;
+}
 } /* namespace object_loclisation*/
