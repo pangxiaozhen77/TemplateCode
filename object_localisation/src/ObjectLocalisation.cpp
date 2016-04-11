@@ -393,10 +393,13 @@ bool ObjectLocalisation::loadFPFHSignature(int model_number){
   // load vertices
 
   std::ifstream FPFHSignature_file;
-  std::string path = ros::package::getPath("object_localisation") + "/models/FPFHSignature_1";
+  std::string path = ros::package::getPath("object_localisation") + "/models/FPFHSignature_";
+  std::stringstream number;
+  number << model_number;
+  path.append(number.str());
   std::string file_name = path + ".ply";
-  std::cout << "loading:" << file_name << std::endl;
   FPFHSignature_file.open (file_name.c_str(), std::ifstream::in);
+  std::cout << "loading:" << file_name << std::endl;
 
   for (std::string line; std::getline (FPFHSignature_file, line);)
     {
