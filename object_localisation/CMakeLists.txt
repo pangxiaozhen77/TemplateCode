@@ -42,3 +42,4 @@ add_executable(
 
 target_link_libraries(object_localisation_node ${catkin_LIBRARIES})
 add_dependencies(object_localisation_node object_localisation_gencpp)
+target_link_libraries(object_localisation_node ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so)

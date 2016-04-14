@@ -21,6 +21,12 @@
 #include <pcl/keypoints/iss_3d.h>
 #include <ros/package.h>
 #include <string>
+#include <pcl/recognition/cg/hough_3d.h>
+#include <pcl/features/board.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/common/transforms.h>
+#include <boost/thread/thread.hpp>
+#include <pcl/registration/icp.h>
 
 
 #include "object_localisation/filtering.hpp"
@@ -65,7 +71,10 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
       preprocessed_size_(0),
       keypoints_size_(0),
       preprocessed_cloud_ptr_(new pcl::PointCloud<pcl::PointXYZRGB> ()),
+      preprocessed_model_ptr_(new pcl::PointCloud<pcl::PointXYZRGB> ()),
+      transposed_model_ptr_(new pcl::PointCloud<pcl::PointXYZRGB> ()),
       keypoint_cloud_ptr_(new pcl::PointCloud<pcl::PointXYZRGB> ()),
+      keypoint_model_ptr_(new pcl::PointCloud<pcl::PointXYZRGB> ()),
       normals_(new pcl::PointCloud<pcl::Normal>()),
       triangles_(new pcl::PolygonMesh()),
       cloud_vector_(),
@@ -74,19 +83,32 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
       FPFH_signature_scene_(new pcl::PointCloud<pcl::FPFHSignature33>()),
       FPFH_signature_model_(new pcl::PointCloud<pcl::FPFHSignature33>()),
       model_scene_correspondence_(new pcl::Correspondences()),
+      FPFH_LRF_scene_(new pcl::PointCloud<pcl::ReferenceFrame>()),
+      FPFH_LRF_model_(new pcl::PointCloud<pcl::ReferenceFrame>()),
+      rototranslations_(),
+      refined_rototranslations_(),
+      clustered_correspondences_(),
+      max_(0),
+      model_index_(0),
+      model_path_(),
+      save_path_(),
+      model_poses_(),
+
+      //Models
+        number_of_models_(1),
 
       //Filtering Parameters
-        number_of_average_clouds_ (15),
-        number_of_median_clouds_ (5),
+        number_of_average_clouds_ (20),
+        number_of_median_clouds_ (9),
         z_threshold_ (0.005),
         planarSegmentationTolerance_ (0.02),
         min_number_of_inliers_ (30000),
-        xmin_ (-0.5),
+        xmin_ (-0.15),
         xmax_ (0.5),
-        ymin_ (-0.5),
-        ymax_ (0.5),
+        ymin_ (-0.25),
+        ymax_ (0.25),
         zmin_ (0.6),
-        zmax_ (2),
+        zmax_ (1.05),
 
       //Meshing Parameters
         number_of_neighbors_normal_ (30),
@@ -100,7 +122,7 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
 
       //Keypoint Detection Parameters
         normal_radius_ (0.008),
-        salient_radius_ (0.015),
+        salient_radius_ (0.012),
         border_radius_ (salient_radius_ *1.1),
         non_max_radius_ (salient_radius_*0.5),
         gamma_21_ (0.975),
@@ -109,21 +131,44 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
         threads_ (4),
 
       // Parameters for FPFH-Descriptor
-        FPFH_radius_ (0.016),
+        FPFH_radius_ (0.02),
 
       // Parameters for RoPS-Feature.
         RoPS_radius_ (0.03),
         crops_ (true),
 
       // Correspondence Search
-        sqr_correspondence_distance_(50)
+        sqr_correspondence_distance_(70),
+
+      // Local Reference Frame
+        lrf_search_radius_ (0.01),
+
+      // Hough clustering
+        bin_size_ (0.05),
+        threshold_ (1),
+
+      // Refinement and Validation
+        max_fitness_score_(0.00005),
+
+      // Visualisation
+        inlier_dist_(0.01),
+        offset_(0.4)
 {
   // Timer on
   tic();
 
+  model_poses_.poses.resize(number_of_models_);
+  refined_rototranslations_.resize(number_of_models_);
+
+  std::string path = ros::package::getPath("object_localisation") ;
+  model_path_ = path + "/models/";
+  save_path_ = path + "/models/";
+  std::cout << "Using Model Path: " << model_path_ << std::endl;
+  std::cout << "Using Save Path: " << save_path_ << std::endl;
+
   // initializing publisher and subscriber
   ros::Subscriber sub = nodeHandle_.subscribe("/camera/depth/points", 1, saveCloud);
-  publisher_ = nodeHandle_.advertise<sensor_msgs::PointCloud2>("object_detection/preprocessedCloud", 1, true);
+  publisher_ = nodeHandle_.advertise<geometry_msgs::PoseArray>("object_detection/Pose", 1, true);
 
   //Sample clouds
   ros::Rate r(60);
@@ -141,7 +186,7 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
 
   // Preprocessing (Filtering)
   preprocess();
-  std::cout << "Cloud is filtered, segmented and clipped." << std::endl;
+  std::cout << "Cloud is filtered, segmented and clipped. Using " << preprocessed_cloud_ptr_->size() << " points." << std::endl;
 
   // computing cloud resolution
 //  computeCloudResolution(preprocessed_cloud_ptr_);
@@ -165,34 +210,72 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
 
   //Compute FPFH Signature
   computeFPFHDescriptor();
-  std::cout << "FPFH signatures are calculated." << std::endl;
+  std::cout << "FPFH signatures are computed." << std::endl;
 
-  //temporary
-  //FPFH_signature_model_=FPFH_signature_scene_;
-  loadFPFHSignature(1);
-  std::cout << "loaded " << FPFH_signature_model_->size() << "signatures" << std::endl;
+  //Compute FPFH LRFs
+  computeFPFHLRFs();
+  std::cout << "FPFH LRFs are computed." << std::endl;
 
-  //Correspondence Search
-  FPFHcorrespondence();
-  std::cout << model_scene_correspondence_->size()<< " correspondences are found." << std::endl;
+  // Search for different models
 
-  // publish filtered cloud
-  publish(*preprocessed_cloud_ptr_);
+  for (model_index_ = 0; model_index_ < number_of_models_; model_index_++)
+  {
+    std::cout << "Searching for model " << model_index_ << " in scene." << std::endl;
+
+    //Load Model Data
+    loadModelData(model_index_);
+    std::cout << "Loaded data for " << FPFH_signature_model_->size() << " model keypoints." << std::endl;
+
+    //Correspondence Search
+    FPFHcorrespondence();
+    std::cout << model_scene_correspondence_->size()<< " correspondences are found." << std::endl;
+
+    //Hough Clustering
+    Clustering();
+    int instances = rototranslations_.size ();
+    std::cout << "Model instances found: " << instances << std::endl;
+
+    //Refinement & Validation
+    if (instances >= 1){
+      Output();
+      for (int i=0; i < rototranslations_.size(); i++){
+        if (ICP(i)){
+          continue;
+        }else if (i == rototranslations_.size()-1 ){
+          std::cout << "Found no translation with good enough match." << std::endl;
+        }
+      }
+    }
+  }
+
 
   //Timer off
   toc();
 
+  // publish filtered cloud
+  publish();
+  ros::Rate loop_rate(200);
+//  while (ros::ok())
+//  {
+//    publish();
+//
+//    ros::spinOnce();
+//
+//    loop_rate.sleep();
+//  }
+
+
+
+  //Visualisation
+  //Visualisation();
+
   // saving files
-  pcl::io::savePCDFileASCII ("PointCloud_preprocessed.pcd", *preprocessed_cloud_ptr_);
-  pcl::io::savePCDFileASCII ("PointCloud_keypoints.pcd", *keypoint_cloud_ptr_);
-  //pcl::io::savePCDFile  ("Object_Localisation_Files/PointCloud_RoPSHistograms.pcd", *histograms);
-  //pcl::io::savePLYFile  ("Object_Localisation_Files/PointCloud_RoPSHistograms.ply", *histograms);
-  //pcl::io::savePCDFile  ("Object_Localisation_Files/PointCloud_LRFs.pcd", *LRFs);
-  //pcl::io::savePLYFile  ("Object_Localisation_Files/PointCloud_LRFs.ply", *LRFs);
-  //pcl::io::savePLYFile ("Object_Localisation_Files/PointCloud_mesh.ply", *triangles);
-  pcl::io::savePCDFile  ("FPFHSignature2.pcd", *FPFH_signature_scene_);
-  pcl::io::savePLYFile  ("FPFHSignature2.ply", *FPFH_signature_scene_);
-  std::cout << "Files are saved" << std::endl;
+  pcl::io::savePCDFileASCII (save_path_ + "Preprocessed_0.pcd", *preprocessed_cloud_ptr_);
+  pcl::io::savePLYFile (save_path_ + "Preprocessed_0.ply", *preprocessed_cloud_ptr_);
+  pcl::io::savePCDFileASCII (save_path_ + "Keypoints_0.pcd", *keypoint_cloud_ptr_);
+  pcl::io::savePLYFile  (save_path_ + "LRFs_0.ply", *FPFH_LRF_scene_);
+  pcl::io::savePLYFile  (save_path_ + "Signature_0.ply", *FPFH_signature_scene_);
+  std::cout << "Files are saved in folder: " << save_path_ << std::endl;
 
   // shut down node
   ros::requestShutdown();
@@ -202,16 +285,16 @@ ObjectLocalisation::~ObjectLocalisation()
 {
 }
 
-void ObjectLocalisation::publish(pcl::PointCloud<pcl::PointXYZRGB>& cloud)
+void ObjectLocalisation::publish()
 {
-  pcl::PCLPointCloud2 cloud_pcl;
-  pcl::toPCLPointCloud2(cloud, cloud_pcl);
-
-  sensor_msgs::PointCloud2 cloud_msg;
-  pcl_conversions::fromPCL(cloud_pcl, cloud_msg);
+//  pcl::PCLPointCloud2 cloud_pcl;
+//  pcl::toPCLPointCloud2(cloud, cloud_pcl);
+//
+//  sensor_msgs::PointCloud2 cloud_msg;
+//  pcl_conversions::fromPCL(cloud_pcl, cloud_msg);
 
   // publishing cloud
-  publisher_.publish(cloud_msg);
+  publisher_.publish(model_poses_);
 }
 
 bool ObjectLocalisation::computeCloudResolution (const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud)
@@ -363,6 +446,17 @@ bool ObjectLocalisation::computeFPFHDescriptor(){
   return true;
 }
 
+bool ObjectLocalisation::computeFPFHLRFs(){
+  pcl::BOARDLocalReferenceFrameEstimation<pcl::PointXYZRGB, pcl::Normal, pcl::ReferenceFrame> rf_est;
+          rf_est.setFindHoles (true);
+          rf_est.setRadiusSearch (lrf_search_radius_);
+          rf_est.setInputCloud (keypoint_cloud_ptr_);
+          rf_est.setInputNormals (normals_);
+          rf_est.setSearchSurface (preprocessed_cloud_ptr_);
+          rf_est.compute (*FPFH_LRF_scene_);
+  return true;
+}
+
 bool ObjectLocalisation::FPFHcorrespondence(){
 
     pcl::KdTreeFLANN<pcl::FPFHSignature33 > match_search;
@@ -388,18 +482,17 @@ bool ObjectLocalisation::FPFHcorrespondence(){
   return true;
 }
 
-bool ObjectLocalisation::loadFPFHSignature(int model_number){
+bool ObjectLocalisation::loadModelData(int model_number){
 
-  // load vertices
-
-  std::ifstream FPFHSignature_file;
-  std::string path = ros::package::getPath("object_localisation") + "/models/FPFHSignature_";
   std::stringstream number;
   number << model_number;
-  path.append(number.str());
-  std::string file_name = path + ".ply";
+
+  // load signatures
+  std::ifstream FPFHSignature_file;
+  std::string file_name = model_path_ + "Signature_";
+  file_name.append(number.str());
+  file_name = file_name + ".ply";
   FPFHSignature_file.open (file_name.c_str(), std::ifstream::in);
-  std::cout << "loading:" << file_name << std::endl;
 
   for (std::string line; std::getline (FPFHSignature_file, line);)
     {
@@ -417,6 +510,234 @@ bool ObjectLocalisation::loadFPFHSignature(int model_number){
         FPFH_signature_model_->push_back (signature);
       }
     }
+
+  // loading LRFs
+  std::ifstream FPFH_LRF_file;
+  std::string lrf_file_name = model_path_ + "LRFs_";
+  lrf_file_name.append(number.str());
+  lrf_file_name = lrf_file_name + ".ply";
+
+  FPFH_LRF_file.open (lrf_file_name.c_str(), std::ifstream::in);
+
+  for (std::string line; std::getline (FPFH_LRF_file, line);)
+    {
+    pcl::ReferenceFrame LRF;
+      std::istringstream in (line);
+      unsigned int mark = 0;
+      float sign =0;
+      in >> mark;
+      if (mark == 3)
+      {
+        for (int i=0; i<3; i++){
+          in >> sign;
+          LRF.x_axis[i] = sign;
+        }
+        in >> mark;
+        for (int i=0; i<3; i++){
+          in >> sign;
+          LRF.y_axis[i] = sign;
+        }
+        in >> mark;
+        for (int i=0; i<3; i++){
+          in >> sign;
+          LRF.z_axis[i] = sign;
+        }
+        FPFH_LRF_model_->push_back (LRF);
+      }
+    }
+
+  // loading kepoint cloud
+  std::string keypoint_file_name = model_path_ + "Keypoints_";
+  keypoint_file_name.append(number.str());
+  keypoint_file_name = keypoint_file_name + ".pcd";
+
+  if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (keypoint_file_name, *keypoint_model_ptr_) == -1) //* load the file
+    {
+      PCL_ERROR ("Couldn't read input file base \n");
+      return (-1);
+    }
+
+  // loading preprocessed cloud
+  std::string preprocessed_file_name = model_path_ + "Preprocessed_";
+  preprocessed_file_name.append(number.str());
+  preprocessed_file_name = preprocessed_file_name + ".pcd";
+
+  if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (preprocessed_file_name, *preprocessed_model_ptr_) == -1) //* load the file
+    {
+      PCL_ERROR ("Couldn't read input file base \n");
+      std::cout << preprocessed_model_ptr_->size() << std::endl;
+      return (-1);
+    }
+
+  return true;
+}
+
+bool ObjectLocalisation::Clustering(){
+
+        pcl::Hough3DGrouping<pcl::PointXYZRGB, pcl::PointXYZRGB, pcl::ReferenceFrame, pcl::ReferenceFrame> clusterer;
+        clusterer.setHoughBinSize (bin_size_);
+        clusterer.setHoughThreshold (threshold_);
+        clusterer.setUseInterpolation (true);
+        clusterer.setUseDistanceWeight (true);
+
+        clusterer.setInputCloud (keypoint_model_ptr_);
+        clusterer.setInputRf (FPFH_LRF_model_);
+        clusterer.setSceneCloud (keypoint_cloud_ptr_);
+        clusterer.setSceneRf (FPFH_LRF_scene_);
+        clusterer.setModelSceneCorrespondences (model_scene_correspondence_);
+
+        clusterer.cluster (clustered_correspondences_);
+        clusterer.recognize (rototranslations_, clustered_correspondences_);
+
+        return true;
+}
+
+bool ObjectLocalisation::ICP(int instance){
+
+  pcl::transformPointCloud (*preprocessed_model_ptr_, *transposed_model_ptr_, rototranslations_[instance]);
+  pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
+  icp.setInputSource(transposed_model_ptr_);
+  icp.setInputTarget(preprocessed_cloud_ptr_);
+  pcl::PointCloud<pcl::PointXYZRGB> Final;
+  icp.align(Final);
+  *transposed_model_ptr_ = Final;
+
+  if (icp.getFitnessScore() < max_fitness_score_){
+    refined_rototranslations_[model_index_] = rototranslations_[instance]*icp.getFinalTransformation();
+    std::cout << "ICP has converged with fitness score: "  <<
+    icp.getFitnessScore() << std::endl;
+
+    // Print the rotation matrix and translation vector
+    Eigen::Matrix3f rotation = refined_rototranslations_[model_index_].block<3,3>(0, 0);
+    Eigen::Vector3f translation = refined_rototranslations_[model_index_].block<3,1>(0, 3);
+
+    model_poses_.poses[model_index_].position.x = translation[0];
+    model_poses_.poses[model_index_].position.y = translation[1];
+    model_poses_.poses[model_index_].position.z = translation[2];
+
+    Eigen::Quaternionf quat(rotation);
+    model_poses_.poses[model_index_].orientation.w =  quat.w();
+    model_poses_.poses[model_index_].orientation.x =  quat.x();
+    model_poses_.poses[model_index_].orientation.y =  quat.y();
+    model_poses_.poses[model_index_].orientation.z =  quat.z();
+
+    printf ("\n");
+    printf ("            | %6.3f %6.3f %6.3f | \n", rotation (0,0), rotation (0,1), rotation (0,2));
+    printf ("        R = | %6.3f %6.3f %6.3f | \n", rotation (1,0), rotation (1,1), rotation (1,2));
+    printf ("            | %6.3f %6.3f %6.3f | \n", rotation (2,0), rotation (2,1), rotation (2,2));
+    printf ("\n");
+    printf ("        t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
+
+    return true;
+  }else{
+    return false;
+  }
+}
+
+bool ObjectLocalisation::Output(){
+
+  double value = 0;
+  for (int i = 0; i < rototranslations_.size (); ++i)
+  {
+    if (value < clustered_correspondences_[i].size())
+    {
+      max_ = i;
+      value = clustered_correspondences_[i].size();
+    }
+
+    std::cout << "\n    Instance " << i + 1 << ":" << std::endl;
+    std::cout << "        Correspondences belonging to this instance: " << clustered_correspondences_[i].size () << std::endl;
+
+
+    // Print the rotation matrix and translation vector
+    Eigen::Matrix3f rotation = rototranslations_[i].block<3,3>(0, 0);
+    Eigen::Vector3f translation = rototranslations_[i].block<3,1>(0, 3);
+
+    printf ("\n");
+    printf ("            | %6.3f %6.3f %6.3f | \n", rotation (0,0), rotation (0,1), rotation (0,2));
+    printf ("        R = | %6.3f %6.3f %6.3f | \n", rotation (1,0), rotation (1,1), rotation (1,2));
+    printf ("            | %6.3f %6.3f %6.3f | \n", rotation (2,0), rotation (2,1), rotation (2,2));
+    printf ("\n");
+    printf ("        t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
+  }
+  std::cout << "Instance with most correspondences is instance nr. " << max_ + 1 << std::endl;
+
+  return true;
+}
+
+bool ObjectLocalisation::Visualisation(){
+  // post matching
+
+  pcl::visualization::PCLVisualizer viewer ("Correspondence");
+  pcl::visualization::PCLVisualizer view_overlay ("Overlay");
+  viewer.addPointCloud<pcl::PointXYZRGB> (preprocessed_cloud_ptr_, "scene_cloud");
+
+  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> scene_keypoints_color_handler (keypoint_cloud_ptr_, 0, 0, 255);
+  viewer.addPointCloud (keypoint_cloud_ptr_, scene_keypoints_color_handler, "scene_keypoints");
+  viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "scene_keypoints");
+
+  //  We are translating the model so that it doesn't end in the middle of the scene representation
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr off_scene_model (new pcl::PointCloud<pcl::PointXYZRGB> ());
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr off_scene_model_keypoints (new pcl::PointCloud<pcl::PointXYZRGB> ());
+  pcl::transformPointCloud (*preprocessed_model_ptr_, *off_scene_model, Eigen::Vector3f (offset_,0,0), Eigen::Quaternionf (1, 0, 0, 0));
+  pcl::transformPointCloud (*keypoint_model_ptr_, *off_scene_model_keypoints, Eigen::Vector3f (offset_,0,0), Eigen::Quaternionf (1, 0, 0, 0));
+
+  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> off_scene_model_color_handler (off_scene_model, 255, 255, 128);
+  viewer.addPointCloud (off_scene_model, off_scene_model_color_handler, "off_scene_model");
+
+  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> off_scene_model_keypoints_color_handler (off_scene_model_keypoints, 0, 0, 255);
+  viewer.addPointCloud (off_scene_model_keypoints, off_scene_model_keypoints_color_handler, "off_scene_model_keypoints");
+  viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "off_scene_model_keypoints");
+
+
+
+  // Overlay visualisation
+
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr inliers (new pcl::PointCloud<pcl::PointXYZRGB> ());
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr outliers (new pcl::PointCloud<pcl::PointXYZRGB> ());
+  pcl::transformPointCloud (*preprocessed_model_ptr_, *transposed_model_ptr_, rototranslations_[max_]);
+
+  pcl::KdTreeFLANN<pcl::PointXYZRGB > distance;
+  distance.setInputCloud (preprocessed_cloud_ptr_);
+
+  std::vector<int> index (1);
+  for (int k = 0; k < transposed_model_ptr_->points.size(); k++)
+  {
+    std::vector<float> sqrt_dist (1);
+    distance.nearestKSearch(transposed_model_ptr_->points[k], 1, index, sqrt_dist);
+
+    if (sqrt_dist[0] < inlier_dist_* inlier_dist_)
+    {
+      inliers->push_back(transposed_model_ptr_->points[k]);
+    }
+    else
+    {
+      outliers->push_back(transposed_model_ptr_->points[k]);
+    }
+  }
+  std::cout << (float)inliers->size()/(inliers->size()+outliers->size())*100 << "% are inliers." << std::endl;
+  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> outliers_color (outliers, 255, 0, 0);
+  view_overlay.addPointCloud (outliers, outliers_color, "outliers");
+  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> inliers_color (inliers, 0, 255, 0);
+  view_overlay.addPointCloud (inliers, inliers_color, "inliers");
+
+    for (size_t j = 0; j < clustered_correspondences_[max_].size (); ++j)
+    {
+      std::stringstream ss_line;
+      ss_line << "correspondence_line" << max_ << "_" << j;
+      pcl::PointXYZRGB& model_point = off_scene_model_keypoints->points [clustered_correspondences_[max_][j].index_query];
+      pcl::PointXYZRGB& scene_point = keypoint_cloud_ptr_->points[clustered_correspondences_[max_][j].index_match];
+
+      //  We are drawing a line for each pair of clustered correspondences found between the model and the scene
+      viewer.addLine<pcl::PointXYZRGB, pcl::PointXYZRGB> (model_point, scene_point, 0, 255, 0, ss_line.str ());
+    }
+
+
+  while (!viewer.wasStopped () && !view_overlay.wasStopped ())
+  {
+    viewer.spinOnce ();
+  }
+
   return true;
 }
 } /* namespace object_loclisation*/

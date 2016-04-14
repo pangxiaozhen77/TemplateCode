@@ -19,6 +19,7 @@
 #include <pcl/common/common_headers.h>
 #include <pcl/PolygonMesh.h>
 #include <pcl/registration/correspondence_estimation.h>
+#include <geometry_msgs/PoseArray.h>
 
 
 typedef pcl::PointXYZRGB PointType;
@@ -46,7 +47,7 @@ class ObjectLocalisation
   /*!
    * publish message to topic
    */
-  void publish(pcl::PointCloud<pcl::PointXYZRGB>& cloud);
+  void publish();
 
   /*!
    * publish message to topic
@@ -66,9 +67,19 @@ class ObjectLocalisation
 
   bool computeFPFHDescriptor();
 
+  bool computeFPFHLRFs();
+
   bool FPFHcorrespondence();
 
-  bool loadFPFHSignature(int model_number);
+  bool loadModelData(int model_number);
+
+  bool Clustering();
+
+  bool ICP(int instance);
+
+  bool Output();
+
+  bool Visualisation();
 
  private:
 
@@ -81,7 +92,13 @@ class ObjectLocalisation
 
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr preprocessed_cloud_ptr_;
 
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr preprocessed_model_ptr_;
+
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr transposed_model_ptr_;
+
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr keypoint_cloud_ptr_;
+
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr keypoint_model_ptr_;
 
   pcl::PointCloud<pcl::Normal>::Ptr normals_;
 
@@ -99,6 +116,15 @@ class ObjectLocalisation
 
   pcl::CorrespondencesPtr model_scene_correspondence_;
 
+  pcl::PointCloud<pcl::ReferenceFrame>::Ptr FPFH_LRF_scene_;
+
+  pcl::PointCloud<pcl::ReferenceFrame>::Ptr FPFH_LRF_model_;
+
+  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations_;
+
+  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > refined_rototranslations_;
+
+  std::vector<pcl::Correspondences> clustered_correspondences_;
 
   unsigned int preprocessed_size_;
 
@@ -108,7 +134,18 @@ class ObjectLocalisation
 
   double sqr_correspondence_distance_;
 
-  //Filtering Parameters
+  int max_;
+
+  int model_index_;
+
+  geometry_msgs::PoseArray model_poses_;
+
+  std::string model_path_;
+  std::string save_path_;
+
+//Number of Models to match
+  int number_of_models_;
+//Filtering Parameters
   int number_of_average_clouds_;
   int number_of_median_clouds_;
   float z_threshold_;
@@ -148,6 +185,19 @@ class ObjectLocalisation
 // Parameters for FPFH-Descriptor
   double FPFH_radius_;
 
+// Local Reference Frames
+  double lrf_search_radius_;
+
+// Hough clustering
+  double bin_size_;
+  double threshold_;
+
+// Refinement and Validation
+  float max_fitness_score_;
+
+// Visualisation
+  double inlier_dist_;
+  double offset_;
 };
 
 } /* namespace */
