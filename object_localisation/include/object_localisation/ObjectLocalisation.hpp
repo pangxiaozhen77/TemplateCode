@@ -21,16 +21,14 @@
 #include <pcl/registration/correspondence_estimation.h>
 #include <geometry_msgs/PoseArray.h>
 
-
-typedef pcl::PointXYZRGB PointType;
-
 namespace object_localisation {
-
 /*!
  * Reads PointClouds from topic /camera/depth/points and preprocesses them with temporal median and average filters.
  */
 class ObjectLocalisation
 {
+  typedef pcl::PointXYZRGB PointType;
+
  public:
 
   /*!
@@ -47,21 +45,16 @@ class ObjectLocalisation
   /*!
    * publish message to topic
    */
-  void publish();
-
-  /*!
-   * publish message to topic
-   */
 
   bool preprocess();
 
-  bool computeCloudResolution (const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud);
+  bool computeCloudResolution (const pcl::PointCloud<PointType>::ConstPtr &cloud);
 
-  bool computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud);
+  bool computeNormals(const pcl::PointCloud<PointType>::ConstPtr &cloud);
 
-  bool computeKeypoints(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud);
+  bool computeKeypoints(const pcl::PointCloud<PointType>::ConstPtr &cloud);
 
-  bool computeMesh(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud);
+  bool computeMesh(const pcl::PointCloud<PointType>::ConstPtr &cloud);
 
   bool computeROPSDescriptor();
 
@@ -90,19 +83,19 @@ class ObjectLocalisation
   //! Grid map publisher.
   ros::Publisher publisher_;
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr preprocessed_cloud_ptr_;
+  pcl::PointCloud<PointType>::Ptr preprocessed_cloud_ptr_;
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr preprocessed_model_ptr_;
+  pcl::PointCloud<PointType>::Ptr preprocessed_model_ptr_;
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr transposed_model_ptr_;
+  pcl::PointCloud<PointType>::Ptr transposed_model_ptr_;
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr keypoint_cloud_ptr_;
+  pcl::PointCloud<PointType>::Ptr keypoint_cloud_ptr_;
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr keypoint_model_ptr_;
+  pcl::PointCloud<PointType>::Ptr keypoint_model_ptr_;
 
   pcl::PointCloud<pcl::Normal>::Ptr normals_;
 
-  std::vector <pcl::PointCloud <pcl::PointXYZRGB> > cloud_vector_;
+  std::vector <pcl::PointCloud <PointType> > cloud_vector_;
 
   pcl::PolygonMesh::Ptr triangles_;
 

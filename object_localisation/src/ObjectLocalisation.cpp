@@ -57,10 +57,10 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::Histogram<135>,(float[135], histogram, h
 
 namespace object_localisation {
 
-std::vector <pcl::PointCloud <pcl::PointXYZRGB> > cloud_vector;
+std::vector <pcl::PointCloud <PointType> > cloud_vector;
 
 void saveCloud(const sensor_msgs::PointCloud2& cloud){
-  pcl::PointCloud<pcl::PointXYZRGB> new_cloud;
+  pcl::PointCloud<PointType> new_cloud;
   pcl::fromROSMsg(cloud, new_cloud);
   cloud_vector.push_back(new_cloud);
 }
@@ -70,11 +70,11 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
     : nodeHandle_(nodeHandle),
       preprocessed_size_(0),
       keypoints_size_(0),
-      preprocessed_cloud_ptr_(new pcl::PointCloud<pcl::PointXYZRGB> ()),
-      preprocessed_model_ptr_(new pcl::PointCloud<pcl::PointXYZRGB> ()),
-      transposed_model_ptr_(new pcl::PointCloud<pcl::PointXYZRGB> ()),
-      keypoint_cloud_ptr_(new pcl::PointCloud<pcl::PointXYZRGB> ()),
-      keypoint_model_ptr_(new pcl::PointCloud<pcl::PointXYZRGB> ()),
+      preprocessed_cloud_ptr_(new pcl::PointCloud<PointType> ()),
+      preprocessed_model_ptr_(new pcl::PointCloud<PointType> ()),
+      transposed_model_ptr_(new pcl::PointCloud<PointType> ()),
+      keypoint_cloud_ptr_(new pcl::PointCloud<PointType> ()),
+      keypoint_model_ptr_(new pcl::PointCloud<PointType> ()),
       normals_(new pcl::PointCloud<pcl::Normal>()),
       triangles_(new pcl::PolygonMesh()),
       cloud_vector_(),
@@ -168,7 +168,7 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
 
   // initializing publisher and subscriber
   ros::Subscriber sub = nodeHandle_.subscribe("/camera/depth/points", 1, saveCloud);
-  publisher_ = nodeHandle_.advertise<geometry_msgs::PoseArray>("object_detection/Pose", 1, true);
+  publisher_ = nodeHandle_.advertise<geometry_msgs::PoseArray>("Pose", 1, true);
 
   //Sample clouds
   ros::Rate r(60);
@@ -217,7 +217,6 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
   std::cout << "FPFH LRFs are computed." << std::endl;
 
   // Search for different models
-
   for (model_index_ = 0; model_index_ < number_of_models_; model_index_++)
   {
     std::cout << "Searching for model " << model_index_ << " in scene." << std::endl;
@@ -248,26 +247,14 @@ ObjectLocalisation::ObjectLocalisation(ros::NodeHandle nodeHandle)
     }
   }
 
+  // publish filtered cloud
+  publisher_.publish(model_poses_);
 
   //Timer off
   toc();
 
-  // publish filtered cloud
-  publish();
-  ros::Rate loop_rate(200);
-//  while (ros::ok())
-//  {
-//    publish();
-//
-//    ros::spinOnce();
-//
-//    loop_rate.sleep();
-//  }
-
-
-
   //Visualisation
-  //Visualisation();
+  Visualisation();
 
   // saving files
   pcl::io::savePCDFileASCII (save_path_ + "Preprocessed_0.pcd", *preprocessed_cloud_ptr_);
@@ -285,26 +272,14 @@ ObjectLocalisation::~ObjectLocalisation()
 {
 }
 
-void ObjectLocalisation::publish()
-{
-//  pcl::PCLPointCloud2 cloud_pcl;
-//  pcl::toPCLPointCloud2(cloud, cloud_pcl);
-//
-//  sensor_msgs::PointCloud2 cloud_msg;
-//  pcl_conversions::fromPCL(cloud_pcl, cloud_msg);
-
-  // publishing cloud
-  publisher_.publish(model_poses_);
-}
-
-bool ObjectLocalisation::computeCloudResolution (const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud)
+bool ObjectLocalisation::computeCloudResolution (const pcl::PointCloud<PointType>::ConstPtr &cloud)
 {
   double res = 0.0;
   int n_points = 0;
   int nres;
   std::vector<int> indices (2);
   std::vector<float> sqr_distances (2);
-  pcl::search::KdTree<pcl::PointXYZRGB> tree;
+  pcl::search::KdTree<PointType> tree;
   tree.setInputCloud (cloud);
 
   for (size_t i = 0; i < cloud->size (); ++i)
@@ -329,10 +304,10 @@ bool ObjectLocalisation::computeCloudResolution (const pcl::PointCloud<pcl::Poin
   return true;
   }
 
-bool ObjectLocalisation::computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud)
+bool ObjectLocalisation::computeNormals(const pcl::PointCloud<PointType>::ConstPtr &cloud)
 {
-  pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> n;
-  pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB>);
+  pcl::NormalEstimation<PointType, pcl::Normal> n;
+  pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType>);
   tree->setInputCloud (cloud);
   n.setInputCloud (cloud);
   n.setSearchMethod (tree);
@@ -365,9 +340,9 @@ bool ObjectLocalisation::preprocess(){
   return true;
 }
 
-bool ObjectLocalisation::computeKeypoints(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud){
-  pcl::ISSKeypoint3D<pcl::PointXYZRGB, pcl::PointXYZRGB> iss_detector;
-  pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
+bool ObjectLocalisation::computeKeypoints(const pcl::PointCloud<PointType>::ConstPtr &cloud){
+  pcl::ISSKeypoint3D<PointType, PointType> iss_detector;
+  pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType> ());
 
   iss_detector.setSearchMethod (tree);
   iss_detector.setSalientRadius (salient_radius_);
@@ -386,7 +361,7 @@ bool ObjectLocalisation::computeKeypoints(const pcl::PointCloud<pcl::PointXYZRGB
 
 }
 
-bool ObjectLocalisation::computeMesh(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud){
+bool ObjectLocalisation::computeMesh(const pcl::PointCloud<PointType>::ConstPtr &cloud){
     meshing meshing;
     meshing.setInputCloud(preprocessed_cloud_ptr_);
     meshing.setMaxAngle(max_angle_);
@@ -405,10 +380,10 @@ bool ObjectLocalisation::computeROPSDescriptor(){
     unsigned int number_of_rotations = 3;
 
     std::vector<bool>* keypoints (new std::vector<bool> ());
-    pcl::search::KdTree<pcl::PointXYZRGB>::Ptr search_method (new pcl::search::KdTree<pcl::PointXYZRGB>);
+    pcl::search::KdTree<PointType>::Ptr search_method (new pcl::search::KdTree<PointType>);
     search_method->setInputCloud (preprocessed_cloud_ptr_);
 
-    pcl::ROPSEstimation <pcl::PointXYZRGB, pcl::Histogram <135> > feature_estimator;
+    pcl::ROPSEstimation <PointType, pcl::Histogram <135> > feature_estimator;
     feature_estimator.setSearchMethod (search_method);
     feature_estimator.setSearchSurface (preprocessed_cloud_ptr_);
     feature_estimator.setInputCloud (keypoint_cloud_ptr_);
@@ -425,8 +400,8 @@ bool ObjectLocalisation::computeROPSDescriptor(){
 
 bool ObjectLocalisation::computeFPFHDescriptor(){
 
-    pcl::FPFHEstimation<pcl::PointXYZRGB, pcl::Normal, pcl::FPFHSignature33> fpfh;
-    pcl::search::KdTree<pcl::PointXYZRGB>::Ptr search_method (new pcl::search::KdTree<pcl::PointXYZRGB>);
+    pcl::FPFHEstimation<PointType, pcl::Normal, pcl::FPFHSignature33> fpfh;
+    pcl::search::KdTree<PointType>::Ptr search_method (new pcl::search::KdTree<PointType>);
     pcl::PointIndicesPtr indices = boost::shared_ptr <pcl::PointIndices> (new pcl::PointIndices ());
 
     // defining indices
@@ -447,7 +422,7 @@ bool ObjectLocalisation::computeFPFHDescriptor(){
 }
 
 bool ObjectLocalisation::computeFPFHLRFs(){
-  pcl::BOARDLocalReferenceFrameEstimation<pcl::PointXYZRGB, pcl::Normal, pcl::ReferenceFrame> rf_est;
+  pcl::BOARDLocalReferenceFrameEstimation<PointType, pcl::Normal, pcl::ReferenceFrame> rf_est;
           rf_est.setFindHoles (true);
           rf_est.setRadiusSearch (lrf_search_radius_);
           rf_est.setInputCloud (keypoint_cloud_ptr_);
@@ -551,7 +526,7 @@ bool ObjectLocalisation::loadModelData(int model_number){
   keypoint_file_name.append(number.str());
   keypoint_file_name = keypoint_file_name + ".pcd";
 
-  if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (keypoint_file_name, *keypoint_model_ptr_) == -1) //* load the file
+  if (pcl::io::loadPCDFile<PointType> (keypoint_file_name, *keypoint_model_ptr_) == -1) //* load the file
     {
       PCL_ERROR ("Couldn't read input file base \n");
       return (-1);
@@ -562,7 +537,7 @@ bool ObjectLocalisation::loadModelData(int model_number){
   preprocessed_file_name.append(number.str());
   preprocessed_file_name = preprocessed_file_name + ".pcd";
 
-  if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (preprocessed_file_name, *preprocessed_model_ptr_) == -1) //* load the file
+  if (pcl::io::loadPCDFile<PointType> (preprocessed_file_name, *preprocessed_model_ptr_) == -1) //* load the file
     {
       PCL_ERROR ("Couldn't read input file base \n");
       std::cout << preprocessed_model_ptr_->size() << std::endl;
@@ -574,7 +549,7 @@ bool ObjectLocalisation::loadModelData(int model_number){
 
 bool ObjectLocalisation::Clustering(){
 
-        pcl::Hough3DGrouping<pcl::PointXYZRGB, pcl::PointXYZRGB, pcl::ReferenceFrame, pcl::ReferenceFrame> clusterer;
+        pcl::Hough3DGrouping<PointType, PointType, pcl::ReferenceFrame, pcl::ReferenceFrame> clusterer;
         clusterer.setHoughBinSize (bin_size_);
         clusterer.setHoughThreshold (threshold_);
         clusterer.setUseInterpolation (true);
@@ -595,15 +570,16 @@ bool ObjectLocalisation::Clustering(){
 bool ObjectLocalisation::ICP(int instance){
 
   pcl::transformPointCloud (*preprocessed_model_ptr_, *transposed_model_ptr_, rototranslations_[instance]);
-  pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
+  pcl::IterativeClosestPoint<PointType, PointType> icp;
   icp.setInputSource(transposed_model_ptr_);
   icp.setInputTarget(preprocessed_cloud_ptr_);
-  pcl::PointCloud<pcl::PointXYZRGB> Final;
+  pcl::PointCloud<PointType> Final;
   icp.align(Final);
   *transposed_model_ptr_ = Final;
 
   if (icp.getFitnessScore() < max_fitness_score_){
     refined_rototranslations_[model_index_] = rototranslations_[instance]*icp.getFinalTransformation();
+    max_ = instance;
     std::cout << "ICP has converged with fitness score: "  <<
     icp.getFitnessScore() << std::endl;
 
@@ -670,22 +646,22 @@ bool ObjectLocalisation::Visualisation(){
 
   pcl::visualization::PCLVisualizer viewer ("Correspondence");
   pcl::visualization::PCLVisualizer view_overlay ("Overlay");
-  viewer.addPointCloud<pcl::PointXYZRGB> (preprocessed_cloud_ptr_, "scene_cloud");
+  viewer.addPointCloud<PointType> (preprocessed_cloud_ptr_, "scene_cloud");
 
-  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> scene_keypoints_color_handler (keypoint_cloud_ptr_, 0, 0, 255);
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> scene_keypoints_color_handler (keypoint_cloud_ptr_, 0, 0, 255);
   viewer.addPointCloud (keypoint_cloud_ptr_, scene_keypoints_color_handler, "scene_keypoints");
   viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "scene_keypoints");
 
   //  We are translating the model so that it doesn't end in the middle of the scene representation
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr off_scene_model (new pcl::PointCloud<pcl::PointXYZRGB> ());
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr off_scene_model_keypoints (new pcl::PointCloud<pcl::PointXYZRGB> ());
+  pcl::PointCloud<PointType>::Ptr off_scene_model (new pcl::PointCloud<PointType> ());
+  pcl::PointCloud<PointType>::Ptr off_scene_model_keypoints (new pcl::PointCloud<PointType> ());
   pcl::transformPointCloud (*preprocessed_model_ptr_, *off_scene_model, Eigen::Vector3f (offset_,0,0), Eigen::Quaternionf (1, 0, 0, 0));
   pcl::transformPointCloud (*keypoint_model_ptr_, *off_scene_model_keypoints, Eigen::Vector3f (offset_,0,0), Eigen::Quaternionf (1, 0, 0, 0));
 
-  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> off_scene_model_color_handler (off_scene_model, 255, 255, 128);
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> off_scene_model_color_handler (off_scene_model, 255, 255, 128);
   viewer.addPointCloud (off_scene_model, off_scene_model_color_handler, "off_scene_model");
 
-  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> off_scene_model_keypoints_color_handler (off_scene_model_keypoints, 0, 0, 255);
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> off_scene_model_keypoints_color_handler (off_scene_model_keypoints, 0, 0, 255);
   viewer.addPointCloud (off_scene_model_keypoints, off_scene_model_keypoints_color_handler, "off_scene_model_keypoints");
   viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "off_scene_model_keypoints");
 
@@ -693,11 +669,10 @@ bool ObjectLocalisation::Visualisation(){
 
   // Overlay visualisation
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr inliers (new pcl::PointCloud<pcl::PointXYZRGB> ());
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr outliers (new pcl::PointCloud<pcl::PointXYZRGB> ());
-  pcl::transformPointCloud (*preprocessed_model_ptr_, *transposed_model_ptr_, rototranslations_[max_]);
+  pcl::PointCloud<PointType>::Ptr inliers (new pcl::PointCloud<PointType> ());
+  pcl::PointCloud<PointType>::Ptr outliers (new pcl::PointCloud<PointType> ());
 
-  pcl::KdTreeFLANN<pcl::PointXYZRGB > distance;
+  pcl::KdTreeFLANN<PointType > distance;
   distance.setInputCloud (preprocessed_cloud_ptr_);
 
   std::vector<int> index (1);
@@ -716,20 +691,21 @@ bool ObjectLocalisation::Visualisation(){
     }
   }
   std::cout << (float)inliers->size()/(inliers->size()+outliers->size())*100 << "% are inliers." << std::endl;
-  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> outliers_color (outliers, 255, 0, 0);
+
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> outliers_color (outliers, 255, 0, 0);
   view_overlay.addPointCloud (outliers, outliers_color, "outliers");
-  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> inliers_color (inliers, 0, 255, 0);
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> inliers_color (inliers, 0, 255, 0);
   view_overlay.addPointCloud (inliers, inliers_color, "inliers");
 
     for (size_t j = 0; j < clustered_correspondences_[max_].size (); ++j)
     {
       std::stringstream ss_line;
       ss_line << "correspondence_line" << max_ << "_" << j;
-      pcl::PointXYZRGB& model_point = off_scene_model_keypoints->points [clustered_correspondences_[max_][j].index_query];
-      pcl::PointXYZRGB& scene_point = keypoint_cloud_ptr_->points[clustered_correspondences_[max_][j].index_match];
+      PointType& model_point = off_scene_model_keypoints->points [clustered_correspondences_[max_][j].index_query];
+      PointType& scene_point = keypoint_cloud_ptr_->points[clustered_correspondences_[max_][j].index_match];
 
       //  We are drawing a line for each pair of clustered correspondences found between the model and the scene
-      viewer.addLine<pcl::PointXYZRGB, pcl::PointXYZRGB> (model_point, scene_point, 0, 255, 0, ss_line.str ());
+      viewer.addLine<PointType, PointType> (model_point, scene_point, 0, 255, 0, ss_line.str ());
     }
 
 
